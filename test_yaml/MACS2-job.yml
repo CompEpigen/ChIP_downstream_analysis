@@ -1,0 +1,28 @@
+treatment_bam_1: 
+  class: File 
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_H3K4me3_1_duprem_filt.bam"
+
+treatment_bam_2: 
+  class: File 
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_H3K4me3_2_duprem_filt.bam"
+
+#name:
+ #- "H3K4me3_input_peak1_peaks"
+ #- "H3K4me3_input_peak2_peaks"
+
+control_bam_1: 
+  class: File
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_input_1_duprem_filt.bam"
+
+control_bam_2: 
+  class: File
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_input_2_duprem_filt.bam"
+
+genome_size: hs
+
+#qvalue: 0.05
+
+#broad: false
+
+#- {class: File, path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_H3K4me3_2_duprem_filt.bam"}
+#- {class: File, path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_input_2_duprem_filt.bam"}
