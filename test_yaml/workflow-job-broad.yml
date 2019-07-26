@@ -1,0 +1,19 @@
+peak1: 
+  class: File 
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_H3K36me3_1_duprem_filt.bam"
+
+peak2: 
+  class: File 
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_H3K36me3_2_duprem_filt.bam"
+
+control1: 
+  class: File
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_input_1_duprem_filt.bam"
+
+control2: 
+  class: File
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_input_2_duprem_filt.bam"
+
+gsize: hs
+
+filetype: broadPeak
