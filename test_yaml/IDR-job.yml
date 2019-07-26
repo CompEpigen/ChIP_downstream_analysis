@@ -1,0 +1,9 @@
+#samples: [
+  #{class: File, path: "/Users/adams/Documents/Heidelberg/IDR/IDR_analysis_Hermann/H3K4me3/Control_IgG/peak1"},
+  #{class: File, path: "/Users/adams/Documents/Heidelberg/IDR/IDR_analysis_Hermann/H3K4me3/Control_IgG/peak2"}
+#]
+samples:
+  - {class: File, path: "/Users/adams/Documents/Heidelberg/IDR/IDR_analysis_Hermann/H3K4me3/Control_IgG/peak1"}
+  - {class: File, path: "/Users/adams/Documents/Heidelberg/IDR/IDR_analysis_Hermann/H3K4me3/Control_IgG/peak2"}
+#inputFileType: narrowPeak
+#outputFile: "idrValue.txt"
