@@ -4,7 +4,6 @@ requirements:
   MultipleInputFeatureRequirement: {}
   ScatterFeatureRequirement: {}
 
-
 inputs:
   treatment_bam: File[]
   control_bam: File[]
@@ -20,12 +19,28 @@ inputs:
     type: string
     default: "AUTO"             #MACS2: "BAMPE" or "BEDPE" for paired-end data
   #output_basename: string
+  output:
+    type: string
+    default: "results.npz"
+  corMethod:
+    type: string
+    default: "spearman"
+  whatToPlot:
+    type: string
+    default: "scatterplot"
 
 outputs:
-  peak_bed:
-    type: File[]
-    outputSource: macs2/peak_bed
+  output_npz:
+    type: File
+    outputSource: multiBamSummary/output_npz
+  
+  output_plotCor:
+    type: File
+    outputSource: plotCorrelation/output_plotCor
 
+  output_plotPCA:
+    type: File
+    outputSource: plotPCA/output_plotPCA
 
 steps:
   macs2:
@@ -41,3 +56,33 @@ steps:
       pvalue: pvalue
       genome_size: genome_size
     out: [peak_bed]
+
+  samtools_index:
+    run: /Users/adams/Documents/Heidelberg/CWL/tools/samtools_index.cwl
+    scatter: bam_sorted
+    in:
+      bam_sorted: 
+        source: [treatment_bam, control_bam]
+        linkMerge: merge_flattened
+    out: [bam_sorted_indexed]
+  
+  multiBamSummary:
+    run: /Users/adams/Documents/Heidelberg/CWL/tools/multiBamSummary.cwl
+    in:
+      bamfiles: [samtools_index/bam_sorted_indexed]
+      output: output
+    out: [output_npz]
+
+  plotCorrelation:
+    run: /Users/adams/Documents/Heidelberg/CWL/tools/plotCorrelation.cwl
+    in:
+      corData: multiBamSummary/output_npz
+      corMethod: corMethod
+      whatToPlot: whatToPlot
+    out: [output_plotCor]
+  
+  plotPCA:
+    run: /Users/adams/Documents/Heidelberg/CWL/tools/plotPCA.cwl
+    in:
+      corData: multiBamSummary/output_npz
+    out: [output_plotPCA]

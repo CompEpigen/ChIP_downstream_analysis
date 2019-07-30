@@ -7,8 +7,8 @@ hints:
   ResourceRequirement:
     coresMin: 1
     ramMin: 10000
-  #DockerRequirement:
-    #dockerPull: genomicpariscentre/macs2:2.1.0.20140616
+  DockerRequirement:
+    dockerPull: genomicpariscentre/macs2:2.1.0.20140616
 
 baseCommand: ["macs2", "callpeak"]
 
