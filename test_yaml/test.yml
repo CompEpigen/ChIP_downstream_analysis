@@ -1,0 +1,6 @@
+regionsFileName:
+  - {class: File, path: "/Users/adams/Documents/Heidelberg/CWL/input/region_file.bed"}
+
+bam: 
+  - {class: File, path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_H3K4me3_1_duprem_filt.bam"}
+  - {class: File, path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_H3K4me3_2_duprem_filt.bam"}
