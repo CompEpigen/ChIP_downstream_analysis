@@ -18,7 +18,6 @@ inputs:
   format_tag:
     type: string
     default: "AUTO"             #MACS2: "BAMPE" or "BEDPE" for paired-end data
-  #output_basename: string
   output:
     type: string
     default: "results.npz"
@@ -27,7 +26,7 @@ inputs:
     default: "spearman"
   whatToPlot:
     type: string
-    default: "scatterplot"
+    default: "heatmap"
 
 outputs:
   output_npz:
