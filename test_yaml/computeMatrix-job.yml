@@ -1,0 +1,6 @@
+regionsFileName:
+  - {class: File, path: "/Users/adams/Documents/Heidelberg/CWL/input/region_file.bed"}
+
+scoreFileName: 
+  - {class: File, path: "/Users/adams/Documents/Heidelberg/CWL/output/test_3/ESC_H3K4me3_1_duprem_filt.bigwig"}
+  - {class: File, path: "/Users/adams/Documents/Heidelberg/CWL/output/test_3/ESC_H3K4me3_2_duprem_filt.bigwig"}

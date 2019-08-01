@@ -1,0 +1,25 @@
+peak1: 
+  class: File 
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_H3K4me3_1_duprem_filt.bam"
+
+peak2: 
+  class: File 
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_H3K4me3_2_duprem_filt.bam"
+
+control1: 
+  class: File
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_input_1_duprem_filt.bam"
+
+control2: 
+  class: File
+  path: "/Users/adams/Documents/Heidelberg/CWL/input/ESC_input_2_duprem_filt.bam"
+
+gsize: hs
+
+#treshq: 0.05
+
+#isbroad: false
+
+#filetype: narrowPeak
+
+#outp: $(inputs.peak1.nameroot + _idrValue.txt)

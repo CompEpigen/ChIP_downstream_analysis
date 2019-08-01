@@ -1,0 +1,4 @@
+matrixFile:
+  class: File
+  path: "/Users/adams/Documents/Heidelberg/CWL/output/test_5/computeMatrix.gz"
+
