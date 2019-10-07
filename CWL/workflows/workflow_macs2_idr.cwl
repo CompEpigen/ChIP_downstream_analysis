@@ -29,7 +29,7 @@ outputs:
 
 steps:
   macs2_1:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/MACS2_1.cwl
+    run: ../tools/MACS2_1.cwl
     in:
       treatment_bam_1: treatment_bam_1
       control_bam_1: control_bam_1
@@ -42,7 +42,7 @@ steps:
       [peak1_bed]
 
   macs2_2:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/MACS2_2.cwl
+    run: ../tools/MACS2_2.cwl
     in:
       treatment_bam_2: treatment_bam_2
       control_bam_2: control_bam_2
@@ -55,7 +55,7 @@ steps:
       [peak2_bed]
 
   idr:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/IDR.cwl
+    run: ../tools/IDR.cwl
     in:
       samples:
         - macs2_1/peak1_bed

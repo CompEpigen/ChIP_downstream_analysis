@@ -43,7 +43,7 @@ outputs:
 
 steps:
   macs2:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/MACS2.cwl
+    run: ../tools/MACS2.cwl
     scatter: [treatment_bam, control_bam]
     scatterMethod: "dotproduct"
     in:
@@ -57,7 +57,7 @@ steps:
     out: [peak_bed]
 
   samtools_index:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/samtools_index.cwl
+    run: ../tools/samtools_index.cwl
     scatter: bam_sorted
     in:
       bam_sorted: 
@@ -66,14 +66,14 @@ steps:
     out: [bam_sorted_indexed]
   
   multiBamSummary:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/multiBamSummary.cwl
+    run: ../tools/multiBamSummary.cwl
     in:
       bamfiles: [samtools_index/bam_sorted_indexed]
       output: output
     out: [output_npz]
 
   plotCorrelation:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/plotCorrelation.cwl
+    run: ../tools/plotCorrelation.cwl
     in:
       corData: multiBamSummary/output_npz
       corMethod: corMethod
@@ -81,7 +81,7 @@ steps:
     out: [output_plotCor]
   
   plotPCA:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/plotPCA.cwl
+    run: ../tools/plotPCA.cwl
     in:
       corData: multiBamSummary/output_npz
     out: [output_plotPCA]
