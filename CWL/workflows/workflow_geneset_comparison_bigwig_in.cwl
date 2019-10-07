@@ -28,7 +28,7 @@ steps:
     run: ../tools/computeMatrix.cwl
     in:
       regions_bed: regions_bed
-      scoreFileName: bamCoverage/bigwig
+      scoreFileName: bigwigs
     out: [matrix_gzip]
 
   plotProfile:
