@@ -18,7 +18,7 @@ inputs:
     type: File[]
     inputBinding:
       position: 1
-      prefix: --regions_bed
+      prefix: --regionsFileName
 
   scoreFileName:                                 #bigWigfiles
     type: File[]
