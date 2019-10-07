@@ -1,4 +1,4 @@
-regionsFileName:
+regions_bed:
   - {class: File, path: "/Users/adams/Documents/Heidelberg/CWL/input/region_file.bed"}
 
 bam: 

@@ -6,7 +6,7 @@ requirements:
   ScatterFeatureRequirement: {}
 
 inputs:
-  regionsFileName: File[]
+  regions_bed: File[]
   bam: File[]
   binSize:
     type: int 
@@ -53,7 +53,7 @@ steps:
   computeMatrix:
     run: /Users/adams/Documents/Heidelberg/CWL/tools/computeMatrix.cwl
     in:
-      regionsFileName: regionsFileName
+      regions_bed: regions_bed
       scoreFileName: bamCoverage/bigwig
     out: [matrix_gzip]
 

@@ -14,11 +14,11 @@ hints:
 baseCommand: ["computeMatrix", "scale-regions"]
 
 inputs:
-  regionsFileName:
+  regions_bed:
     type: File[]
     inputBinding:
       position: 1
-      prefix: --regionsFileName
+      prefix: --regions_bed
 
   scoreFileName:                                 #bigWigfiles
     type: File[]
