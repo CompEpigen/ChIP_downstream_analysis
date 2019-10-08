@@ -8,6 +8,7 @@ requirements:
 inputs:
   regions_bed: File[]
   bigwigs: File[]
+  all_samples_in_one_plot: boolean
 
 outputs:
   matrix_gzip:
@@ -35,6 +36,7 @@ steps:
     run: ../tools/plotProfile.cwl
     in:
       matrixFile: computeMatrix/matrix_gzip
+      all_samples_in_one_plot: all_samples_in_one_plot
     out: [plotProfile_pdf]
 
 

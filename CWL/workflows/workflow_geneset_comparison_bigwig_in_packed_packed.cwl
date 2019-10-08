@@ -70,6 +70,104 @@
             "id": "#computeMatrix.cwl"
         },
         {
+            "class": "Workflow",
+            "requirements": [
+                {
+                    "class": "MultipleInputFeatureRequirement"
+                },
+                {
+                    "class": "ScatterFeatureRequirement"
+                }
+            ],
+            "inputs": [
+                {
+                    "type": "boolean",
+                    "id": "#main/all_samples_in_one_plot"
+                },
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "id": "#main/bigwigs"
+                },
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "id": "#main/regions_bed"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "File",
+                    "outputSource": "#main/computeMatrix/matrix_gzip",
+                    "id": "#main/matrix_gzip"
+                },
+                {
+                    "type": "File",
+                    "outputSource": "#main/plotHeatmap/plotHeatmap_pdf",
+                    "id": "#main/plotHeatmap_pdf"
+                },
+                {
+                    "type": "File",
+                    "outputSource": "#main/plotProfile/plotProfile_pdf",
+                    "id": "#main/plotProfile_pdf"
+                }
+            ],
+            "steps": [
+                {
+                    "run": "#computeMatrix.cwl",
+                    "in": [
+                        {
+                            "source": "#main/regions_bed",
+                            "id": "#main/computeMatrix/regions_bed"
+                        },
+                        {
+                            "source": "#main/bigwigs",
+                            "id": "#main/computeMatrix/scoreFileName"
+                        }
+                    ],
+                    "out": [
+                        "#main/computeMatrix/matrix_gzip"
+                    ],
+                    "id": "#main/computeMatrix"
+                },
+                {
+                    "run": "#plotHeatmap.cwl",
+                    "in": [
+                        {
+                            "source": "#main/computeMatrix/matrix_gzip",
+                            "id": "#main/plotHeatmap/matrixFile"
+                        }
+                    ],
+                    "out": [
+                        "#main/plotHeatmap/plotHeatmap_pdf"
+                    ],
+                    "id": "#main/plotHeatmap"
+                },
+                {
+                    "run": "#plotProfile.cwl",
+                    "in": [
+                        {
+                            "source": "#main/all_samples_in_one_plot",
+                            "id": "#main/plotProfile/all_samples_in_one_plot"
+                        },
+                        {
+                            "source": "#main/computeMatrix/matrix_gzip",
+                            "id": "#main/plotProfile/matrixFile"
+                        }
+                    ],
+                    "out": [
+                        "#main/plotProfile/plotProfile_pdf"
+                    ],
+                    "id": "#main/plotProfile"
+                }
+            ],
+            "id": "#main"
+        },
+        {
             "class": "CommandLineTool",
             "requirements": [
                 {
@@ -185,104 +283,6 @@
                 }
             ],
             "id": "#plotProfile.cwl"
-        },
-        {
-            "class": "Workflow",
-            "requirements": [
-                {
-                    "class": "MultipleInputFeatureRequirement"
-                },
-                {
-                    "class": "ScatterFeatureRequirement"
-                }
-            ],
-            "inputs": [
-                {
-                    "type": "boolean",
-                    "id": "#main/all_samples_in_one_plot"
-                },
-                {
-                    "type": {
-                        "type": "array",
-                        "items": "File"
-                    },
-                    "id": "#main/bigwigs"
-                },
-                {
-                    "type": {
-                        "type": "array",
-                        "items": "File"
-                    },
-                    "id": "#main/regions_bed"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "File",
-                    "outputSource": "#main/computeMatrix/matrix_gzip",
-                    "id": "#main/matrix_gzip"
-                },
-                {
-                    "type": "File",
-                    "outputSource": "#main/plotHeatmap/plotHeatmap_pdf",
-                    "id": "#main/plotHeatmap_pdf"
-                },
-                {
-                    "type": "File",
-                    "outputSource": "#main/plotProfile/plotProfile_pdf",
-                    "id": "#main/plotProfile_pdf"
-                }
-            ],
-            "steps": [
-                {
-                    "run": "#computeMatrix.cwl",
-                    "in": [
-                        {
-                            "source": "#main/regions_bed",
-                            "id": "#main/computeMatrix/regions_bed"
-                        },
-                        {
-                            "source": "#main/bigwigs",
-                            "id": "#main/computeMatrix/scoreFileName"
-                        }
-                    ],
-                    "out": [
-                        "#main/computeMatrix/matrix_gzip"
-                    ],
-                    "id": "#main/computeMatrix"
-                },
-                {
-                    "run": "#plotHeatmap.cwl",
-                    "in": [
-                        {
-                            "source": "#main/computeMatrix/matrix_gzip",
-                            "id": "#main/plotHeatmap/matrixFile"
-                        }
-                    ],
-                    "out": [
-                        "#main/plotHeatmap/plotHeatmap_pdf"
-                    ],
-                    "id": "#main/plotHeatmap"
-                },
-                {
-                    "run": "#plotProfile.cwl",
-                    "in": [
-                        {
-                            "source": "#main/all_samples_in_one_plot",
-                            "id": "#main/plotProfile/all_samples_in_one_plot"
-                        },
-                        {
-                            "source": "#main/computeMatrix/matrix_gzip",
-                            "id": "#main/plotProfile/matrixFile"
-                        }
-                    ],
-                    "out": [
-                        "#main/plotProfile/plotProfile_pdf"
-                    ],
-                    "id": "#main/plotProfile"
-                }
-            ],
-            "id": "#main"
         }
     ],
     "cwlVersion": "v1.0"
