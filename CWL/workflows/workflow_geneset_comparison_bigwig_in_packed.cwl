@@ -27,24 +27,46 @@
             ],
             "inputs": [
                 {
+                    "type": [
+                        "null",
+                        "int"
+                    ],
+                    "inputBinding": {
+                        "position": 2,
+                        "prefix": "--afterRegionStartLength"
+                    },
+                    "id": "#computeMatrix.cwl/after_region_start_length"
+                },
+                {
+                    "type": [
+                        "null",
+                        "int"
+                    ],
+                    "inputBinding": {
+                        "position": 2,
+                        "prefix": "--beforeRegionStartLength"
+                    },
+                    "id": "#computeMatrix.cwl/before_region_start_length"
+                },
+                {
                     "type": "string",
                     "default": "computeMatrix.gz",
                     "inputBinding": {
-                        "position": 3,
+                        "position": 10,
                         "prefix": "--outFileName"
                     },
                     "id": "#computeMatrix.cwl/outFileName"
                 },
                 {
-                    "type": {
-                        "type": "array",
-                        "items": "File"
-                    },
+                    "type": [
+                        "null",
+                        "string"
+                    ],
                     "inputBinding": {
-                        "position": 1,
-                        "prefix": "--regionsFileName"
+                        "position": 2,
+                        "prefix": "referencePoint"
                     },
-                    "id": "#computeMatrix.cwl/regions_bed"
+                    "id": "#computeMatrix.cwl/reference_point"
                 },
                 {
                     "type": {
@@ -52,7 +74,27 @@
                         "items": "File"
                     },
                     "inputBinding": {
-                        "position": 2,
+                        "position": 10,
+                        "prefix": "--regionsFileName"
+                    },
+                    "id": "#computeMatrix.cwl/regions_bed"
+                },
+                {
+                    "type": "boolean",
+                    "default": false,
+                    "valueFrom": "${\n  if(self){\n    return(\"scale-regions\")\n  }\n  else{\n    return(\"reference-point\")\n  }\n}\n",
+                    "inputBinding": {
+                        "position": 1
+                    },
+                    "id": "#computeMatrix.cwl/scale_regions_or_use_reference_point"
+                },
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "inputBinding": {
+                        "position": 10,
                         "prefix": "--scoreFileName"
                     },
                     "id": "#computeMatrix.cwl/scoreFileName"
@@ -149,15 +191,6 @@
             ],
             "inputs": [
                 {
-                    "type": "boolean",
-                    "inputBinding": {
-                        "position": 1,
-                        "prefix": "--plotType",
-                        "valueFrom": "overlapped_lines"
-                    },
-                    "id": "#plotProfile.cwl/all_samples_in_one_plot"
-                },
-                {
                     "type": "File",
                     "inputBinding": {
                         "position": 2,
@@ -173,6 +206,14 @@
                         "prefix": "--outFileName"
                     },
                     "id": "#plotProfile.cwl/outFileName"
+                },
+                {
+                    "type": "boolean",
+                    "inputBinding": {
+                        "position": 1,
+                        "prefix": "--perGroup"
+                    },
+                    "id": "#plotProfile.cwl/per_group"
                 }
             ],
             "outputs": [
@@ -198,8 +239,18 @@
             ],
             "inputs": [
                 {
-                    "type": "boolean",
-                    "id": "#main/all_samples_in_one_plot"
+                    "type": [
+                        "null",
+                        "int"
+                    ],
+                    "id": "#main/after_region_start_length"
+                },
+                {
+                    "type": [
+                        "null",
+                        "int"
+                    ],
+                    "id": "#main/before_region_start_length"
                 },
                 {
                     "type": {
@@ -209,11 +260,26 @@
                     "id": "#main/bigwigs"
                 },
                 {
+                    "type": "boolean",
+                    "id": "#main/per_group"
+                },
+                {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "id": "#main/reference_point"
+                },
+                {
                     "type": {
                         "type": "array",
                         "items": "File"
                     },
                     "id": "#main/regions_bed"
+                },
+                {
+                    "type": "boolean",
+                    "id": "#main/scale_regions_or_use_reference_point"
                 }
             ],
             "outputs": [
@@ -238,8 +304,24 @@
                     "run": "#computeMatrix.cwl",
                     "in": [
                         {
+                            "source": "#main/after_region_start_length",
+                            "id": "#main/computeMatrix/after_region_start_length"
+                        },
+                        {
+                            "source": "#main/before_region_start_length",
+                            "id": "#main/computeMatrix/before_region_start_length"
+                        },
+                        {
+                            "source": "#main/reference_point",
+                            "id": "#main/computeMatrix/reference_point"
+                        },
+                        {
                             "source": "#main/regions_bed",
                             "id": "#main/computeMatrix/regions_bed"
+                        },
+                        {
+                            "source": "#main/scale_regions_or_use_reference_point",
+                            "id": "#main/computeMatrix/scale_regions_or_use_reference_point"
                         },
                         {
                             "source": "#main/bigwigs",
@@ -268,12 +350,12 @@
                     "run": "#plotProfile.cwl",
                     "in": [
                         {
-                            "source": "#main/all_samples_in_one_plot",
-                            "id": "#main/plotProfile/all_samples_in_one_plot"
-                        },
-                        {
                             "source": "#main/computeMatrix/matrix_gzip",
                             "id": "#main/plotProfile/matrixFile"
+                        },
+                        {
+                            "source": "#main/per_group",
+                            "id": "#main/plotProfile/per_group"
                         }
                     ],
                     "out": [

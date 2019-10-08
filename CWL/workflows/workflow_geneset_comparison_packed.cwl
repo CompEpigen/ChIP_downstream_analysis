@@ -111,24 +111,46 @@
             ],
             "inputs": [
                 {
+                    "type": [
+                        "null",
+                        "int"
+                    ],
+                    "inputBinding": {
+                        "position": 2,
+                        "prefix": "--afterRegionStartLength"
+                    },
+                    "id": "#computeMatrix.cwl/after_region_start_length"
+                },
+                {
+                    "type": [
+                        "null",
+                        "int"
+                    ],
+                    "inputBinding": {
+                        "position": 2,
+                        "prefix": "--beforeRegionStartLength"
+                    },
+                    "id": "#computeMatrix.cwl/before_region_start_length"
+                },
+                {
                     "type": "string",
                     "default": "computeMatrix.gz",
                     "inputBinding": {
-                        "position": 3,
+                        "position": 10,
                         "prefix": "--outFileName"
                     },
                     "id": "#computeMatrix.cwl/outFileName"
                 },
                 {
-                    "type": {
-                        "type": "array",
-                        "items": "File"
-                    },
+                    "type": [
+                        "null",
+                        "string"
+                    ],
                     "inputBinding": {
-                        "position": 1,
-                        "prefix": "--regionsFileName"
+                        "position": 2,
+                        "prefix": "referencePoint"
                     },
-                    "id": "#computeMatrix.cwl/regions_bed"
+                    "id": "#computeMatrix.cwl/reference_point"
                 },
                 {
                     "type": {
@@ -136,7 +158,27 @@
                         "items": "File"
                     },
                     "inputBinding": {
-                        "position": 2,
+                        "position": 10,
+                        "prefix": "--regionsFileName"
+                    },
+                    "id": "#computeMatrix.cwl/regions_bed"
+                },
+                {
+                    "type": "boolean",
+                    "default": false,
+                    "valueFrom": "${\n  if(self){\n    return(\"scale-regions\")\n  }\n  else{\n    return(\"reference-point\")\n  }\n}\n",
+                    "inputBinding": {
+                        "position": 1
+                    },
+                    "id": "#computeMatrix.cwl/scale_regions_or_use_reference_point"
+                },
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "inputBinding": {
+                        "position": 10,
                         "prefix": "--scoreFileName"
                     },
                     "id": "#computeMatrix.cwl/scoreFileName"
@@ -233,15 +275,6 @@
             ],
             "inputs": [
                 {
-                    "type": "boolean",
-                    "inputBinding": {
-                        "position": 1,
-                        "prefix": "--plotType",
-                        "valueFrom": "overlapped_lines"
-                    },
-                    "id": "#plotProfile.cwl/all_samples_in_one_plot"
-                },
-                {
                     "type": "File",
                     "inputBinding": {
                         "position": 2,
@@ -257,6 +290,14 @@
                         "prefix": "--outFileName"
                     },
                     "id": "#plotProfile.cwl/outFileName"
+                },
+                {
+                    "type": "boolean",
+                    "inputBinding": {
+                        "position": 1,
+                        "prefix": "--perGroup"
+                    },
+                    "id": "#plotProfile.cwl/per_group"
                 }
             ],
             "outputs": [

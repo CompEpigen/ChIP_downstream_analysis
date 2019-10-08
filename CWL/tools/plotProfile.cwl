@@ -27,12 +27,11 @@ inputs:
       position: 3
       prefix: --outFileName
 
-  all_samples_in_one_plot:
+  per_group:
     type: boolean
     inputBinding:
       position: 1
-      prefix: --plotType
-      valueFrom: "overlapped_lines"
+      prefix: --perGroup
 
 outputs:
   plotProfile_pdf:
