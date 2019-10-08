@@ -106,8 +106,7 @@
                 }
             ],
             "baseCommand": [
-                "computeMatrix",
-                "scale-regions"
+                "computeMatrix"
             ],
             "inputs": [
                 {
@@ -148,7 +147,7 @@
                     ],
                     "inputBinding": {
                         "position": 2,
-                        "prefix": "referencePoint"
+                        "prefix": "--referencePoint"
                     },
                     "id": "#computeMatrix.cwl/reference_point"
                 },

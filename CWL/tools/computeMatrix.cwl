@@ -11,7 +11,7 @@ hints:
   DockerRequirement:
     dockerPull: kerstenbreuer/deeptools:3.1.1
 
-baseCommand: ["computeMatrix", "scale-regions"]
+baseCommand: ["computeMatrix"]
 
 inputs:
   scale_regions_or_use_reference_point:
@@ -45,7 +45,7 @@ inputs:
     type: string?
     inputBinding:
       position: 2
-      prefix: "referencePoint"
+      prefix: "--referencePoint"
 
   regions_bed:
     type: File[]
