@@ -17,17 +17,17 @@ inputs:
   scale_regions_or_use_reference_point:
     type: boolean
     default: false
-    valueFrom: |
-      ${
-        if(self){
-          return("scale-regions")
-        }
-        else{
-          return("reference-point")
-        }
-      }
     inputBinding:
       position: 1
+      valueFrom: |
+        ${
+          if(self){
+            return("scale-regions")
+          }
+          else{
+            return("reference-point")
+          }
+        }
   
   before_region_start_length:
     type: int?

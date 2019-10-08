@@ -166,9 +166,9 @@
                 {
                     "type": "boolean",
                     "default": false,
-                    "valueFrom": "${\n  if(self){\n    return(\"scale-regions\")\n  }\n  else{\n    return(\"reference-point\")\n  }\n}\n",
                     "inputBinding": {
-                        "position": 1
+                        "position": 1,
+                        "valueFrom": "${\n  if(self){\n    return(\"scale-regions\")\n  }\n  else{\n    return(\"reference-point\")\n  }\n}\n"
                     },
                     "id": "#computeMatrix.cwl/scale_regions_or_use_reference_point"
                 },
