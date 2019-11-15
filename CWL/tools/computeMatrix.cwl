@@ -22,10 +22,10 @@ inputs:
       valueFrom: |
         ${
           if(self){
-            return("scale-regions")
+            return("reference-point")
           }
           else{
-            return("reference-point")
+            return("scale-regions")
           }
         }
   
