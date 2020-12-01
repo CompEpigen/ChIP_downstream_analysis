@@ -11,30 +11,30 @@ hints:
   DockerRequirement:
     dockerPull: kerstenbreuer/deeptools:3.1.1
 
-baseCommand: ["computeMatrix", "scale-regions"]
+baseCommand: ["plotProfile"]
 
 inputs:
-  regionsFileName:
-    type: File[]
-    inputBinding:
-      position: 1
-      prefix: --regionsFileName
-
-  scoreFileName:                                 #bigWigfiles
-    type: File[]
+  matrixFile:
+    type: File 
     inputBinding:
       position: 2
-      prefix: --scoreFileName
-
+      prefix: --matrixFile
+  
   outFileName:
     type: string
-    default: "computeMatrix.gz"
+    default: "Profile_plot.pdf"
     inputBinding:
       position: 3
       prefix: --outFileName
 
+  per_group:
+    type: boolean
+    inputBinding:
+      position: 1
+      prefix: --perGroup
+
 outputs:
-  matrix_gzip:
+  plotProfile_pdf:
     type: File
     outputBinding:
-      glob: "*Matrix.gz"
+      glob: "*plot.pdf"

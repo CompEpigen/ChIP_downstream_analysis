@@ -6,7 +6,7 @@ requirements:
   ScatterFeatureRequirement: {}
 
 inputs:
-  regionsFileName: File[]
+  regions_bed: File[]
   bam: File[]
   binSize:
     type: int 
@@ -35,14 +35,14 @@ outputs:
 
 steps:
   samtools_index:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/samtools_index.cwl
+    run: ../tools/samtools_index.cwl
     scatter: bam_sorted
     in:
       bam_sorted: bam
     out: [bam_sorted_indexed]
 
   bamCoverage:                              #bam to bigwig
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/bamCoverage.cwl
+    run: ../tools/bamCoverage.cwl
     scatter: bam
     in:
       bam: samtools_index/bam_sorted_indexed
@@ -51,21 +51,21 @@ steps:
     out: [bigwig]
 
   computeMatrix:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/computeMatrix.cwl
+    run: ../tools/computeMatrix.cwl
     in:
-      regionsFileName: regionsFileName
+      regions_bed: regions_bed
       scoreFileName: bamCoverage/bigwig
     out: [matrix_gzip]
 
   plotProfile:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/plotProfile.cwl
+    run: ../tools/plotProfile.cwl
     in:
       matrixFile: computeMatrix/matrix_gzip
     out: [plotProfile_pdf]
 
 
   plotHeatmap:
-    run: /Users/adams/Documents/Heidelberg/CWL/tools/plotHeatmap.cwl
+    run: ../tools/plotHeatmap.cwl
     in:
       matrixFile: computeMatrix/matrix_gzip
     out: [plotHeatmap_pdf]
