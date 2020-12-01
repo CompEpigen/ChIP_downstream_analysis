@@ -100,7 +100,8 @@ seq_depths<-merge(seq_depths_chip, seq_depths_atac, by="Sample", all=TRUE)
 #ANALYSIS="MD_full"
 
 #ANALYSIS="ATAC_diff"
-#ANALYSIS="ENCODE_ChromHMM"
+ANALYSIS="ENCODE_ChromHMM"
+ANALYSIS="ENCODE_ChromHMM_full_regions"
 
 #ANALYSIS="ENCODE_ChromHMM_3groups"
 #ANALYSIS="ENCODE_ChromHMM_signalNorm"
@@ -127,6 +128,8 @@ seq_depths<-merge(seq_depths_chip, seq_depths_atac, by="Sample", all=TRUE)
 #ANALYSIS="H3.3_regions_wt_bg_OFFS_0_rep1_withY"
 #ANALYSIS="H3.3_regions_selected"
 
+#ANALYSIS="H3.3_regions_common"
+
 #ANALYSIS="G34W_regions_old_redone"
 #ANALYSIS="G34W_regions_new"
 #ANALYSIS="G34W_regions_new_short"
@@ -134,7 +137,8 @@ seq_depths<-merge(seq_depths_chip, seq_depths_atac, by="Sample", all=TRUE)
 #ANALYSIS="G34W_regions_new_long2_k9"
 #ANALYSIS="G34W_SUZ12_overlap"
 
-ANALYSIS="G34W_regions_final"
+#ANALYSIS="G34W_regions_final"
+
 
 #ANALYSIS="CT_genes_new"
 #ANALYSIS="CT_genes_full"
@@ -179,6 +183,8 @@ ANNOTATION_DIRS[["MD_full"]]="/ngs_share/scratch/pavlo/gctb/analysis/integrative
 ANNOTATION_DIRS[["CGIs"]]="/ngs_share/scratch/pavlo/gctb/analysis/integrative/important_annotations/CGIs"
 
 ANNOTATION_DIRS[["ENCODE_ChromHMM"]]="/ngs_share/scratch/pavlo/gctb/analysis/integrative/important_annotations/CHMM_ENCODE"
+ANNOTATION_DIRS[["ENCODE_ChromHMM_full_regions"]]="/ngs_share/scratch/pavlo/gctb/analysis/integrative/important_annotations/CHMM_ENCODE"
+
 ANNOTATION_DIRS[["ChromHMM_WT_control_3groups"]]="/ngs_share/scratch/pavlo/gctb/analysis/integrative/important_annotations/CHMM_WT/WT_merged_control_200"
 
 ANNOTATION_DIRS[["Bivalent_ESC_TSS"]]="/ngs_share/scratch/pavlo/gctb/analysis/integrative/important_annotations/Bivalent/ESC/TSS"
@@ -213,6 +219,8 @@ ANNOTATION_DIRS[["H3.3_regions_OFFS_0"]]="/ngs_share/scratch/pavlo/gctb/analysis
 ANNOTATION_DIRS[["H3.3_regions_no_control_OFFS_0_rep2"]]="/ngs_share/scratch/pavlo/gctb/analysis/ChIP/G34W/tracks/H3_variants_all_200bp_0_rep1"
 ANNOTATION_DIRS[["H3.3_regions_wt_bg_OFFS_0_rep1_withY"]]="/ngs_share/scratch/pavlo/gctb/analysis/ChIP/G34W/tracks//H3_variants_all_control_bg_200bp_0_rep1"
 ANNOTATION_DIRS[["H3.3_regions_selected"]]="/ngs_share/scratch/pavlo/gctb/analysis/ChIP/G34W/tracks/selected/"
+ANNOTATION_DIRS[["H3.3_regions_common"]]="/ngs_share/scratch/pavlo/gctb/analysis/integrative/important_annotations/paper_review/"
+
 
 ANNOTATION_DIRS[["G34W_regions_old"]]="/ngs_share/scratch/pavlo/gctb/analysis/ChIP/G34W/tracks/Homer_g34w_old"
 ANNOTATION_DIRS[["G34W_regions_old_redone"]]="/ngs_share/scratch/pavlo/gctb/analysis/ChIP/G34W/tracks/Homer_g34w_old"
@@ -271,6 +279,9 @@ OFFSET<-5000
 #OFFSET<-0
 WIN_SIZE<-100
 N_BINS<-150
+
+N_BINS<-1
+
 MAX_K<-33
 BINNED<-FALSE
 
@@ -345,7 +356,7 @@ features<-gsub("\\.bed", "", list.files(ANNOTATION_DIR, pattern="*.bed$"))
 if(TRUE){
     BW_DIRS<- c(
             "WGBS"="/C010-datasets/Internal/GCTB/WGBS/analysis/results/pilot_summarized/smoothed/bw",
-            "ATAC"="/C010-datasets/Internal/GCTB/ATAC-Seq/tracks",
+            "ATAC"="/C010-datasets/Internal/GCTB/ATAC-Seq/tracks/bw",
             #WGBS="/C010-datasets/Internal/GCTB/WGBS/analysis/results/pilot_summarized/covg5_bw",
             #"ChIP"="/C010-datasets/Internal/GCTB/ChIP/tracks/counts/simple_bamCoverage/10/bw",
             #"ChIP"="/C010-datasets/Internal/GCTB/ChIP/tracks/signalNormalized/bw",
@@ -1357,11 +1368,11 @@ if(AVG_BOXPLOTS){
 #
 
 ######################################################## selected marks
-K_MEANS_N_CLUSTERS<-7
-MIN_CLUSTER_SIZE=20
+K_MEANS_N_CLUSTERS<-5
+MIN_CLUSTER_SIZE=10
 
 #plot_group<-"G34W"
-plot_marks<-"G34W"
+#plot_marks<-"G34W"
 #plot_marks<-"K27me3"
 #plot_marks<-"K36me3"
 #plot_marks<-c("G34W", "H3.3")
@@ -1376,6 +1387,9 @@ plot_marks<-"G34W"
 ##plot_marks<- c("K27me3", "K4me3", "K36me3")
 #plot_marks<- c("K27me3", "K4me3", "K27ac", "K36me3", "H3.3", "G34W")
 #plot_marks<- c("K27me3", "K4me3", "K36me3", "G34W")
+
+plot_marks<-c("G34W","H3.3","K27me3", "K9me3")
+
 
 #FEATURE_SUBSET<-c(1:length(features))
 
@@ -1657,15 +1671,16 @@ for(FEATURE_SUBSET in seq(features)){
         if(BINNED){
             cluster_summaries$Distance_kb<-factor(cluster_summaries$Distance_kb, levels=bin_locs/1000)
         }
-        pcc<-profile_meta_plot(cluster_summaries, facet_vars=c("Mark", "Cluster"), free_scales=CLUSTER_PROFILE_FREE_SCALE, 
-                col_var=if(length(plot_marks)>1) "Mark" else "Cluster")
+        pcc<-profile_meta_plot(cluster_summaries, facet_vars=if(length(plot_marks)==1) c("Cluster", "Mark") else c("Mark", "Cluster"), 
+                free_scales=CLUSTER_PROFILE_FREE_SCALE, 
+                col_var=if(length(plot_marks)==1) "Mark" else "Cluster")
         
         combined_cluster<-arrangeGrob(grobs = cluster_plots,ncol=length(cluster_plots), padding = unit(4, "line"))
         #combined<-do.call("grid.arrange", 
         #        c(as.list(unname(sub_plots)), ncol=length(sub_plots), bottom=xlab_string,  padding = unit(2, "line")))
-        fn<-sprintf("/ngs_share/scratch/pavlo/gctb/analysis/integrative/summaries/cluster_profile_plots_%s_%d_%d_%s_%s_subplot", ANALYSIS, OFFSET, WIN_SIZE, paste(plot_features, collapse="_"), paste(plot_marks, collapse="_"))
+        fn<-file.path(OUT_DIR, sprintf("cluster_profile_plots_%s_%d_%d_%s_%s_subplot", ANALYSIS, OFFSET, WIN_SIZE, paste(plot_features, collapse="_"), paste(plot_marks, collapse="_")))
         
-        if(length(plot_marks)>1){
+        if(length(plot_marks)==1){
             h<-length(unique(cluster_summaries$Cluster))
             w<-length(unique(cluster_summaries$Mark))
         }else{
