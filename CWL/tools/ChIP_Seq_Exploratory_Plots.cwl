@@ -189,7 +189,6 @@ requirements:
           BINNED_REG_END_NAME="$(inputs.BINNED_REG_END_NAME)"
           NORMALIZE_ATAC="$(inputs.NORMALIZE_ATAC)"=="true"
           NORMALIZE_CHIP="$(inputs.NORMALIZE_CHIP)"=="true"
-          OUTPUT_DIR="$(inputs.OUTPUT_DIR.path)"
           BW_EXTENSION="$(inputs.BW_EXTENSION)"
           BW_PREFIX="$(inputs.BW_PREFIX)"
           BW_SUFFIX="$(inputs.BW_SUFFIX)"
