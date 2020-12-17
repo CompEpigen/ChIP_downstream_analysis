@@ -166,7 +166,7 @@ arguments:
     valueFrom: ./Parameters.R
 requirements:
   - class: DockerRequirement
-    dockerPull: 'allybuck/chip_seq_analysis_20201214:latest'
+    dockerPull: 'allybuck/chip_seq_analysis_20201216:latest'
   - class: InitialWorkDirRequirement
     listing:
       - entryname: Parameters.R
