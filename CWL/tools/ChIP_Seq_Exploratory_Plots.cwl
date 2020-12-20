@@ -9,9 +9,9 @@ inputs:
     type: boolean
   - id: marks
     type: string
-  - id: WT
+  - id: SAMPLES
     type: string
-  - id: MT
+  - id: GROUPS
     type: string
   - id: ANALYSIS
     type: string
@@ -161,20 +161,20 @@ outputs:
 arguments:
   - position: 0
     prefix: ''
-    valueFrom: /02_code/MainScriptNew.R
+    valueFrom: /02_code/MainScript.R
   - position: 0
     valueFrom: ./Parameters.R
 requirements:
   - class: DockerRequirement
-    dockerPull: 'allybuck/chip_seq_analysis_20201216:latest'
+    dockerPull: 'allybuck/chip_seq_analysis_20201220:latest'
   - class: InitialWorkDirRequirement
     listing:
       - entryname: Parameters.R
         entry: |
           SAMPLE_WISE="$(inputs.SAMPLE_WISE)"=="true"
           marks=c($(inputs.marks))
-          WT=c($(inputs.WT))
-          MT=c($(inputs.MT))
+          SAMPLES=c($(inputs.SAMPLES))
+          GROUPS=c($(inputs.GROUPS))
           ANALYSIS="$(inputs.ANALYSIS)"
           BW_DIR="$(inputs.BW_DIR.path)" 
           ANNOTATION_DIR="$(inputs.ANNOTATION_DIR.path)" 
@@ -216,7 +216,7 @@ requirements:
           ERROR_MEASURE="$(inputs.ERROR_MEASURE)"
           QUANT=$(inputs.QUANT)
         writable: false
-      - entryname: MainScriptTest.R
+      - entryname: MainScript.R
         entry: |
           args = commandArgs(trailingOnly=TRUE);
           source(args[1])
