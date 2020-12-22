@@ -5,30 +5,64 @@ $namespaces:
 baseCommand:
   - Rscript
 inputs:
-  - id: SAMPLE_WISE
-    type: boolean
-  - id: marks
-    type: string
-  - id: SAMPLES
-    type: string
-  - id: GROUPS
-    type: string
   - id: ANALYSIS
     type: string
+    doc: Analysis name
+  - id: marks
+    type: string
+    doc: >-
+      Token, that will be looked at for several samples; typically similar to
+      antibodies in ChIP or assay type like ATAC seq
+  - id: SAMPLES
+    type: string
+    doc: |-
+      Token that correspond to samples; 
+      It is not recommended that marks and sample names include _ or -
+  - id: GROUPS
+    type: string
+    doc: >-
+      Assignment of samples to groups; the parameter groups has to have the same
+      length as "samples"
+  - id: SAMPLE_WISE
+    type: boolean
+    doc: Each sample will be treated as a seperated group
   - id: BW_DIR
     type: Directory
+    doc: >-
+      Directory with bigWig files; each file should be named:
+      <BW_PREFIX>_<SampleToken>_<MarkToken>_<BW_SUFFIX>.<BW_EXTENSION>
+  - id: BW_EXTENSION
+    type: string
+  - id: BW_PREFIX
+    type: string?
+  - id: BW_SUFFIX
+    type: string?
   - id: ANNOTATION_DIR
     type: Directory
-  - id: OFFSET
-    type: int
-  - id: WIN_SIZE
-    type: int
-  - id: N_BINS
-    type: int
-  - id: MAX_K
-    type: int
+    doc: >-
+      Directory with BED files: tab-separated file with columns chr  start  end 
+      strand
   - id: BINNED
     type: boolean
+    doc: >-
+      If True all regions from BED files are aligned at start and end (e.g. gene
+      TSSs and TESs), and split into an equal number of meta-bins of different
+      sizes.
+
+      If False the regions are aligned using pivots defined in ANCHOR_SPECS
+      (e.g. peak summits or gene TSSs) and split into unit windows of fixed
+      size.
+  - id: OFFSET
+    type: int
+    doc: >-
+      If BINNED is False: the size of the window upstream and downstream of the
+      region center for which data extraction and plotting is performed
+  - id: WIN_SIZE
+    type: int
+    doc: 'If BINNED is False: the size of the unit window'
+  - id: N_BINS
+    type: int
+    doc: 'If BINNED is True: the number of meta windows'
   - id: ANCHOR_SPECS
     type:
       type: enum
@@ -37,32 +71,43 @@ inputs:
         - mid
         - end
       name: ANCHOR_SPECS
+    doc: 'If BINNED is False: point of alignment (start, mid, end)'
   - id: ANCHOR_NAME
     type: string
+    doc: 'If BINNED is False: name used for plotting for annotating the anchor point'
   - id: BINNED_REG_START_NAME
     type: string
+    doc: 'If BINNED is True: name of the starting point'
   - id: BINNED_REG_END_NAME
     type: string
+    doc: 'If BINNED is True: name of the end point'
   - id: NORMALIZE_ATAC
     type: boolean
+    doc: Normalization of ATAC data is currently not supported
   - id: NORMALIZE_CHIP
     type: boolean
-  - id: BW_EXTENSION
-    type: string
-  - id: BW_PREFIX
-    type: string?
-  - id: BW_SUFFIX
-    type: string?
+    doc: Normalization of ChIP data is currently not supported
+  - id: QSUB
+    type: boolean
+    doc: Submit bwtool jobs to a cluster; currently not supported
   - id: AVERAGES
     type: boolean
+    doc: Calculate average statistics per region
   - id: HEATMAP
     type: boolean
+    doc: Generate heatmaps of the signal
   - id: AVG_SCATTERPLOTS
     type: boolean
+    doc: Generate scatterplots with average values per region
   - id: AVG_BOXPLOTS
     type: boolean
+    doc: Generate boxplots with average values per region
   - id: comp_groups
     type: string
+    doc: For average scatterplots and average boxplots sample groups to compare
+  - id: comp_marks
+    type: string
+    doc: For average scatterplots and average boxplots marks to compare
   - id: TEST_METHOD
     type:
       type: enum
@@ -70,34 +115,47 @@ inputs:
         - averages
         - profiles
       name: TEST_METHOD
-  - id: comp_marks
-    type: string
+    doc: >-
+      Method for testing significance; supported methods: averages: t-test with
+      average values per region
   - id: PNG
     type: boolean
+    doc: Generate PNGs instead of PDFs
   - id: AVG_DELTA_REF_FEATURE
     type: string?
+    doc: >-
+      If defined and more than one BED file is given, the name of the BED file
+      to be used as reference for comparison in average boxplots
   - id: K_MEANS_N_CLUSTERS
     type: int
+    doc: 'for Heatmaps: number of clusters for k-Means clustering of regions'
   - id: MIN_CLUSTER_SIZE
     type: int
+    doc: >-
+      for Heatmaps: minimal number of regions in a cluster used for plotting.
+      Smaller clusters will be omitted.
   - id: plot_marks
     type: string
+    doc: 'for Heatmaps: mark tokens used for plotting'
   - id: CLUSTER_PROFILE_PLOTS
     type: boolean
-  - id: CLUSTER_AVERAGE_PLOTS
-    type: boolean
-  - id: CLUSTER_AVERAGE_BOXPLOTS
-    type: boolean
+    doc: >-
+      for Heatmaps: create a matrix of separate profile plot panels; one panel
+      for each cluster
   - id: CLUSTER_PROFILE_FREE_SCALE
     type: boolean
-  - id: GROUP_AVG_COMPARISONS
-    type: string
-  - id: MARK_AVG_COMPARISONS
-    type: string
-  - id: PANEL_SPACING1
+    doc: >-
+      if CLUSTER_PROFILE_PLOTS is True: whether the scale will be dynamic or
+      equal in all panels
+  - id: CLUSTER_AVERAGE_PLOTS
+    type: boolean
+    doc: 'for Heatmaps: create separate average scatter plots for each cluster'
+  - id: CLUSTER_AVERAGE_BOXPLOTS
+    type: boolean
+    doc: 'for Heatmaps: create separate average boxplots for each cluster'
+  - id: PANEL_SPACING
     type: float
-  - id: PANEL_SPACING2
-    type: float
+    doc: 'for Heatmaps: distance between heatmap panels'
   - id: ERROR_MEASURE
     type:
       type: enum
@@ -105,8 +163,12 @@ inputs:
         - SD
         - SEM
       name: ERROR_MEASURE
+    doc: Measure of uncertainty for profile plots
   - id: QUANT
     type: float
+    doc: >-
+      for Heatmaps: upper (1-QUANT) and lower quantiles of the signal
+      distribution that will be trimmed during plotting
 outputs:
   - id: example_out
     type: stdout
@@ -160,13 +222,13 @@ outputs:
       glob: kmeans_clustering_*.RDS
 arguments:
   - position: 0
-    prefix: ''
+    prefix: '--vanilla'
     valueFrom: /02_code/MainScript.R
   - position: 0
     valueFrom: ./Parameters.R
 requirements:
   - class: DockerRequirement
-    dockerPull: 'allybuck/chip_seq_analysis_20201220:latest'
+    dockerPull: 'allybuck/chip_seq_analysis_20201221:latest'
   - class: InitialWorkDirRequirement
     listing:
       - entryname: Parameters.R
@@ -181,7 +243,6 @@ requirements:
           OFFSET=$(inputs.OFFSET)
           WIN_SIZE=$(inputs.WIN_SIZE) 
           N_BINS=$(inputs.N_BINS)
-          MAX_K=$(inputs.MAX_K)
           BINNED="$(inputs.BINNED)"=="true"
           ANCHOR_SPECS="$(inputs.ANCHOR_SPECS)"
           ANCHOR_NAME="$(inputs.ANCHOR_NAME)"
@@ -209,10 +270,10 @@ requirements:
           CLUSTER_AVERAGE_PLOTS="$(inputs.CLUSTER_AVERAGE_PLOTS)"=="true"
           CLUSTER_AVERAGE_BOXPLOTS="$(inputs.CLUSTER_AVERAGE_BOXPLOTS)"=="true"
           CLUSTER_PROFILE_FREE_SCALE="$(inputs.CLUSTER_PROFILE_FREE_SCALE)"=="true"
-          GROUP_AVG_COMPARISONS=list(c($(inputs.GROUP_AVG_COMPARISONS)))
-          MARK_AVG_COMPARISONS=list(c($(inputs.MARK_AVG_COMPARISONS)))
-          PANEL_SPACING1=$(inputs.PANEL_SPACING1)
-          PANEL_SPACING2=$(inputs.PANEL_SPACING2)
+          GROUP_AVG_COMPARISONS=list(c($(inputs.comp_groups)))
+          MARK_AVG_COMPARISONS=list(c($(inputs.comp_marks)))
+          PANEL_SPACING1=$(inputs.PANEL_SPACING)
+          PANEL_SPACING2=$(inputs.PANEL_SPACING)
           ERROR_MEASURE="$(inputs.ERROR_MEASURE)"
           QUANT=$(inputs.QUANT)
         writable: false
