@@ -228,7 +228,7 @@ arguments:
     valueFrom: ./Parameters.R
 requirements:
   - class: DockerRequirement
-    dockerPull: 'allybuck/chip_seq_analysis_20201221:latest'
+    dockerPull: 'compepigen/enrichment_visualizations:latest'
   - class: InitialWorkDirRequirement
     listing:
       - entryname: Parameters.R
