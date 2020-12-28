@@ -1,5 +1,6 @@
 #library(GenomicRanges)
 library(tidyr)
+library(plyr)
 library(dplyr)
 library(grid)
 library(gridExtra)
@@ -84,11 +85,11 @@ features<-gsub("\\.bed", "", list.files(ANNOTATION_DIR, pattern="*.bed$"))
     sprintf("ANCHOR=%s\n", if(ANCHOR_SPECS=="start") "-starts" else if(ANCHOR_SPECS=="end") "-ends" else ""),
     sprintf("DOWNSTREAM=%d\n",OFFSET),
     sprintf("TILE_AVG=%d\n",WIN_SIZE),
-    sprintf("TMP_DIR=%s\n","/ngs_share/tmp"),
+    sprintf("TMP_DIR=%s\n","/tmp"),
     sprintf("REGIONS=\"%s\"\n", paste(features, collapse=" ")),
     sprintf("TOKEN=%s\n", if(BINNED) "binned" else ANCHOR_SPECS),
     sprintf("META=%s\n", N_BINS ),
-    "mkdir $TMP_DIR/logs/$ANALYSIS\n",
+    "mkdir -p $TMP_DIR/$ANALYSIS\n",
     sprintf("INPUT_BWS=`ls -1 $BW_DIR | grep -v log | grep %s`\n", BW_EXTENSION),
     "for rgn in `echo $REGIONS`\n",
     "do\n",
@@ -101,12 +102,10 @@ features<-gsub("\\.bed", "", list.files(ANNOTATION_DIR, pattern="*.bed$"))
 "done\n",
 sep="")
   
-print(command)
-
+cat(command)
 system(command, intern=FALSE)
 
-
-
+Sys.sleep(20)
 
 repeat{
   if(QSUB){
@@ -139,7 +138,7 @@ for(feature in features){
   fbed<-read.table(file.path(ANNOTATION_DIR, paste0(feature,".bed")))
   #feature_grs[[feature]]<-GRanges(fbed$V1, IRanges(fbed$V2, fbed$V3), "*")
   #region_ids[[feature]]<-paste0("region_", seq_along(feature_grs[[feature]]))
-  region_ids[[feature]]<-paste0("region_", seq_along(fbed))
+  region_ids[[feature]]<-paste0("region_", seq_along(rownames(fbed)))
   
   mat_list<-list()
   for(sample in unlist(sample_groups)){
