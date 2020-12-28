@@ -1,0 +1,43 @@
+FROM r-base:4.0.0
+
+RUN apt-get clean all
+RUN apt-get update
+#RUN apt-get dist-upgrade -y
+RUN apt-get autoremove
+
+RUN apt-get install -y libcurl4-openssl-dev
+RUN apt-get install -y libfontconfig1 libfontconfig1-dev 
+RUN apt-get install -y libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libcairo-dev libxt-dev
+RUN export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig/
+
+RUN apt-get install -y git
+
+## create directories
+RUN mkdir -p /01_data
+RUN mkdir -p /02_code
+RUN mkdir -p /03_output
+RUN mkdir -p /tmp
+
+RUN cd /02_code
+RUN git clone https://github.com/CRG-Barcelona/libbeato /02_code/libbeato
+RUN cd /02_code/libbeato && git checkout 0c30432af9c7e1e09ba065ad3b2bc042baa54dc2 && ./configure && make
+
+RUN cd /02_code
+RUN git clone https://github.com/madler/zlib /02_code/zlib
+RUN cd /02_code/zlib && ./configure && make
+
+RUN cd /02_code
+RUN git clone https://github.com/CRG-Barcelona/bwtool /02_code/bwtool
+RUN cd /02_code/bwtool && ./configure CFLAGS='-I/02_code/libbeato -I/02_code/zlib' LDFLAGS='-L/02_code/libbeato/jkweb -L/02_code/libbeato/beato -L/02_code/zlib' && make
+
+## copy files
+COPY /install_packages.R /02_code/install_packages.R
+
+## install R-packages
+RUN Rscript /02_code/install_packages.R
+
+
+RUN apt-get install -y procps
+RUN mkdir -p /tmp/logs
+
+COPY /MainScript.R /02_code/MainScript.R
