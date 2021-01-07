@@ -25,6 +25,7 @@ inputs:
       length as "samples"
   - id: SAMPLE_WISE
     type: boolean
+    default: False
     doc: Each sample will be treated as a seperated group
   - id: BW_DIR
     type: Directory
@@ -33,10 +34,13 @@ inputs:
       <BW_PREFIX>_<SampleToken>_<MarkToken>_<BW_SUFFIX>.<BW_EXTENSION>
   - id: BW_EXTENSION
     type: string
+    default: "bw"
   - id: BW_PREFIX
     type: string?
+    default: ""
   - id: BW_SUFFIX
     type: string?
+    default: ""
   - id: ANNOTATION_DIR
     type: Directory
     doc: >-
@@ -44,6 +48,7 @@ inputs:
       strand
   - id: BINNED
     type: boolean
+    default: False
     doc: >-
       If True all regions from BED files are aligned at start and end (e.g. gene
       TSSs and TESs), and split into an equal number of meta-bins of different
@@ -54,14 +59,17 @@ inputs:
       size.
   - id: OFFSET
     type: int
+    default: 2500
     doc: >-
       If BINNED is False: the size of the window upstream and downstream of the
       region center for which data extraction and plotting is performed
   - id: WIN_SIZE
     type: int
+    default: 100
     doc: 'If BINNED is False: the size of the unit window'
   - id: N_BINS
     type: int
+    default: 150
     doc: 'If BINNED is True: the number of meta windows'
   - id: ANCHOR_SPECS
     type:
@@ -74,12 +82,15 @@ inputs:
     doc: 'If BINNED is False: point of alignment (start, mid, end)'
   - id: ANCHOR_NAME
     type: string
+    default: "TSS"
     doc: 'If BINNED is False: name used for plotting for annotating the anchor point'
   - id: BINNED_REG_START_NAME
     type: string
+    default: "TSS"
     doc: 'If BINNED is True: name of the starting point'
   - id: BINNED_REG_END_NAME
     type: string
+    default: "TES"
     doc: 'If BINNED is True: name of the end point'
   - id: NORMALIZE_ATAC
     type: boolean
@@ -92,15 +103,19 @@ inputs:
     doc: Submit bwtool jobs to a cluster; currently not supported
   - id: AVERAGES
     type: boolean
+    default: True
     doc: Calculate average statistics per region
   - id: HEATMAP
     type: boolean
+    default: True
     doc: Generate heatmaps of the signal
   - id: AVG_SCATTERPLOTS
     type: boolean
+    default: True
     doc: Generate scatterplots with average values per region
   - id: AVG_BOXPLOTS
     type: boolean
+    default: True
     doc: Generate boxplots with average values per region
   - id: comp_groups
     type: string
@@ -123,14 +138,17 @@ inputs:
     doc: Generate PNGs instead of PDFs
   - id: AVG_DELTA_REF_FEATURE
     type: string?
+    default: null
     doc: >-
       If defined and more than one BED file is given, the name of the BED file
       to be used as reference for comparison in average boxplots
   - id: K_MEANS_N_CLUSTERS
     type: int
+    default: 1
     doc: 'for Heatmaps: number of clusters for k-Means clustering of regions'
   - id: MIN_CLUSTER_SIZE
     type: int
+    default: 0
     doc: >-
       for Heatmaps: minimal number of regions in a cluster used for plotting.
       Smaller clusters will be omitted.
@@ -139,22 +157,27 @@ inputs:
     doc: 'for Heatmaps: mark tokens used for plotting'
   - id: CLUSTER_PROFILE_PLOTS
     type: boolean
+    default: True
     doc: >-
       for Heatmaps: create a matrix of separate profile plot panels; one panel
       for each cluster
   - id: CLUSTER_PROFILE_FREE_SCALE
     type: boolean
+    default: True
     doc: >-
       if CLUSTER_PROFILE_PLOTS is True: whether the scale will be dynamic or
       equal in all panels
   - id: CLUSTER_AVERAGE_PLOTS
     type: boolean
+    default: True
     doc: 'for Heatmaps: create separate average scatter plots for each cluster'
   - id: CLUSTER_AVERAGE_BOXPLOTS
     type: boolean
+    default: True
     doc: 'for Heatmaps: create separate average boxplots for each cluster'
   - id: PANEL_SPACING
     type: float
+    default: 1
     doc: 'for Heatmaps: distance between heatmap panels'
   - id: ERROR_MEASURE
     type:
@@ -166,6 +189,7 @@ inputs:
     doc: Measure of uncertainty for profile plots
   - id: QUANT
     type: float
+    default: 0.01
     doc: >-
       for Heatmaps: upper (1-QUANT) and lower quantiles of the signal
       distribution that will be trimmed during plotting
@@ -228,7 +252,8 @@ arguments:
     valueFrom: ./Parameters.R
 requirements:
   - class: DockerRequirement
-    dockerPull: 'compepigen/enrichment_visualizations:latest'
+    dockerPull: 'compepigen/enrichment_visualizations:latest
+'
   - class: InitialWorkDirRequirement
     listing:
       - entryname: Parameters.R
