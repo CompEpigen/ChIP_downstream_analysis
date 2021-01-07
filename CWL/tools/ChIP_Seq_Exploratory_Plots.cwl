@@ -252,8 +252,7 @@ arguments:
     valueFrom: ./Parameters.R
 requirements:
   - class: DockerRequirement
-    dockerPull: 'compepigen/enrichment_visualizations:latest
-'
+    dockerPull: 'compepigen/enrichment_visualizations:latest'
   - class: InitialWorkDirRequirement
     listing:
       - entryname: Parameters.R
