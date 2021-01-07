@@ -37,10 +37,10 @@ inputs:
     default: "bw"
   - id: BW_PREFIX
     type: string?
-    default: ""
+    default: null
   - id: BW_SUFFIX
     type: string?
-    default: ""
+    default: null
   - id: ANNOTATION_DIR
     type: Directory
     doc: >-
@@ -117,10 +117,10 @@ inputs:
     type: boolean
     default: True
     doc: Generate boxplots with average values per region
-  - id: comp_groups
+  - id: COMP_GROUPS
     type: string
     doc: For average scatterplots and average boxplots sample groups to compare
-  - id: comp_marks
+  - id: COMP_MARKS
     type: string
     doc: For average scatterplots and average boxplots marks to compare
   - id: TEST_METHOD
@@ -152,7 +152,7 @@ inputs:
     doc: >-
       for Heatmaps: minimal number of regions in a cluster used for plotting.
       Smaller clusters will be omitted.
-  - id: plot_marks
+  - id: PLOT_MARKS
     type: string
     doc: 'for Heatmaps: mark tokens used for plotting'
   - id: CLUSTER_PROFILE_PLOTS
@@ -175,7 +175,7 @@ inputs:
     type: boolean
     default: True
     doc: 'for Heatmaps: create separate average boxplots for each cluster'
-  - id: PANEL_SPACING
+  - id: HEATMAP_PANEL_SPACING
     type: float
     default: 1
     doc: 'for Heatmaps: distance between heatmap panels'
@@ -275,29 +275,29 @@ requirements:
           NORMALIZE_ATAC="$(inputs.NORMALIZE_ATAC)"=="true"
           NORMALIZE_CHIP="$(inputs.NORMALIZE_CHIP)"=="true"
           BW_EXTENSION="$(inputs.BW_EXTENSION)"
-          BW_PREFIX="$(inputs.BW_PREFIX)"
-          BW_SUFFIX="$(inputs.BW_SUFFIX)"
+          BW_PREFIX=if("$(inputs.BW_PREFIX)" == "null") "" else "$(inputs.BW_PREFIX)"
+          BW_SUFFIX=if("$(inputs.BW_SUFFIX)" == "null") "" else "$(inputs.BW_PREFIX)"
           QSUB="$(inputs.QSUB)"=="true"
           AVERAGES="$(inputs.AVERAGES)"=="true"
           HEATMAP="$(inputs.HEATMAP)"=="true"
           AVG_SCATTERPLOTS="$(inputs.AVG_SCATTERPLOTS)"=="true"
           AVG_BOXPLOTS="$(inputs.AVG_BOXPLOTS)"=="true"
-          comp_groups=c($(inputs.comp_groups))
+          comp_groups=c($(inputs.COMP_GROUPS))
           TEST_METHOD="$(inputs.TEST_METHOD)"
-          comp_marks=c($(inputs.comp_marks))
+          comp_marks=c($(inputs.COMP_MARKS))
           PNG="$(inputs.PNG)"=="true"
-          AVG_DELTA_REF_FEATURE=if("$(inputs.AVG_DELTA_REF_FEATURE)"=="") NULL else "$(inputs.AVG_DELTA_REF_FEATURE)"
+          AVG_DELTA_REF_FEATURE=if("$(inputs.AVG_DELTA_REF_FEATURE)"=="" or "$(inputs.AVG_DELTA_REF_FEATURE)"== "null") NULL else "$(inputs.AVG_DELTA_REF_FEATURE)"
           K_MEANS_N_CLUSTERS=$(inputs.K_MEANS_N_CLUSTERS)
           MIN_CLUSTER_SIZE=$(inputs.MIN_CLUSTER_SIZE)
-          plot_marks=c($(inputs.plot_marks))
+          plot_marks=c($(inputs.PLOT_MARKS))
           CLUSTER_PROFILE_PLOTS="$(inputs.CLUSTER_PROFILE_PLOTS)"=="true"
           CLUSTER_AVERAGE_PLOTS="$(inputs.CLUSTER_AVERAGE_PLOTS)"=="true"
           CLUSTER_AVERAGE_BOXPLOTS="$(inputs.CLUSTER_AVERAGE_BOXPLOTS)"=="true"
           CLUSTER_PROFILE_FREE_SCALE="$(inputs.CLUSTER_PROFILE_FREE_SCALE)"=="true"
-          GROUP_AVG_COMPARISONS=list(c($(inputs.comp_groups)))
-          MARK_AVG_COMPARISONS=list(c($(inputs.comp_marks)))
-          PANEL_SPACING1=$(inputs.PANEL_SPACING)
-          PANEL_SPACING2=$(inputs.PANEL_SPACING)
+          GROUP_AVG_COMPARISONS=list(c($(inputs.COMP_GROUPS)))
+          MARK_AVG_COMPARISONS=list(c($(inputs.COMP_MARKS)))
+          PANEL_SPACING1=$(inputs.HEATMAP_PANEL_SPACING)
+          PANEL_SPACING2=$(inputs.HEATMAP_PANEL_SPACING)
           ERROR_MEASURE="$(inputs.ERROR_MEASURE)"
           QUANT=$(inputs.QUANT)
         writable: false
