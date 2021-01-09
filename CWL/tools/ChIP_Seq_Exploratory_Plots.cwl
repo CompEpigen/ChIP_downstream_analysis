@@ -286,7 +286,7 @@ requirements:
           TEST_METHOD="$(inputs.TEST_METHOD)"
           comp_marks=c($(inputs.COMP_MARKS))
           PNG="$(inputs.PNG)"=="true"
-          AVG_DELTA_REF_FEATURE=if("$(inputs.AVG_DELTA_REF_FEATURE)"=="" or "$(inputs.AVG_DELTA_REF_FEATURE)"== "null") NULL else "$(inputs.AVG_DELTA_REF_FEATURE)"
+          AVG_DELTA_REF_FEATURE=if("$(inputs.AVG_DELTA_REF_FEATURE)"=="" || "$(inputs.AVG_DELTA_REF_FEATURE)"== "null") NULL else "$(inputs.AVG_DELTA_REF_FEATURE)"
           K_MEANS_N_CLUSTERS=$(inputs.K_MEANS_N_CLUSTERS)
           MIN_CLUSTER_SIZE=$(inputs.MIN_CLUSTER_SIZE)
           plot_marks=c($(inputs.PLOT_MARKS))
