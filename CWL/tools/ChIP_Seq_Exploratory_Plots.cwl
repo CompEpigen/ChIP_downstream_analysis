@@ -63,7 +63,7 @@ inputs:
     doc: >-
       If BINNED is False: the size of the window upstream and downstream of the
       region center for which data extraction and plotting is performed
-  - id: WIN_SIZE
+  - id: BIN_SIZE
     type: int
     default: 100
     doc: 'If BINNED is False: the size of the unit window'
@@ -265,7 +265,7 @@ requirements:
           BW_DIR="$(inputs.BW_DIR.path)" 
           ANNOTATION_DIR="$(inputs.ANNOTATION_DIR.path)" 
           OFFSET=$(inputs.OFFSET)
-          WIN_SIZE=$(inputs.WIN_SIZE) 
+          WIN_SIZE=$(inputs.BIN_SIZE) 
           N_BINS=$(inputs.N_BINS)
           BINNED="$(inputs.BINNED)"=="true"
           ANCHOR_SPECS="$(inputs.ANCHOR_SPECS)"
