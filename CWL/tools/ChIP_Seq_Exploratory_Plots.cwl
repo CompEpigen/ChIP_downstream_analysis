@@ -8,7 +8,7 @@ inputs:
   - id: ANALYSIS
     type: string
     doc: Analysis name
-  - id: marks
+  - id: MARKS
     type: string
     doc: >-
       Token, that will be looked at for several samples; typically similar to
@@ -258,7 +258,7 @@ requirements:
       - entryname: Parameters.R
         entry: |
           SAMPLE_WISE="$(inputs.SAMPLE_WISE)"=="true"
-          marks=c($(inputs.marks))
+          marks=c($(inputs.MARKS))
           SAMPLES=c($(inputs.SAMPLES))
           GROUPS=c($(inputs.GROUPS))
           ANALYSIS="$(inputs.ANALYSIS)"
