@@ -79,6 +79,7 @@ inputs:
         - mid
         - end
       name: ANCHOR_SPECS
+    default: mid
     doc: 'If BINNED is False: point of alignment (start, mid, end)'
   - id: ANCHOR_NAME
     type: string
@@ -130,6 +131,7 @@ inputs:
         - averages
         - profiles
       name: TEST_METHOD
+    default: averages
     doc: >-
       Method for testing significance; supported methods: averages: t-test with
       average values per region
@@ -186,6 +188,7 @@ inputs:
         - SD
         - SEM
       name: ERROR_MEASURE
+      default: SD
     doc: Measure of uncertainty for profile plots
   - id: QUANT
     type: float
