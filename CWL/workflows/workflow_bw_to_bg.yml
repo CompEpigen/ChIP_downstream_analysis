@@ -1,0 +1,9 @@
+bw_dir:
+  class: Directory
+  path: /Users/yuyulin/Desktop/work/02.ACTseq
+
+size_file:
+  class: File
+  path: /Users/yuyulin/Desktop/work/mm10.chrom.sizes
+
+output_dir_name: /Users/yuyulin/Desktop/output_xxx
