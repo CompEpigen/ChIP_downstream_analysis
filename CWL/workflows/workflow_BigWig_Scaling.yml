@@ -7,3 +7,5 @@ size_file:
   path: /Users/yuyulin/Desktop/work/mm10.chrom.sizes
 
 output_dir_name: /Users/yuyulin/Desktop/output_xxx
+
+scaling_factor: 10000

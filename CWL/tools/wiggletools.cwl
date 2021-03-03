@@ -6,24 +6,28 @@ requirements:
     dockerOutputDirectory: /opt
   ShellCommandRequirement: {}    
 
-baseCommand: ["wiggletools", "scale", "10000"]
+baseCommand: ["wiggletools", "scale"]
 arguments:
   - valueFrom: "|"
-    position: 2
-  - valueFrom: "sort"
     position: 3
-  - valueFrom: "-k1,1"
+  - valueFrom: "sort"
     position: 4
-  - valueFrom: "-k2,2n"
+  - valueFrom: "-k1,1"
     position: 5
-  - valueFrom: ">"
+  - valueFrom: "-k2,2n"
     position: 6
+  - valueFrom: ">"
+    position: 7
   - valueFrom: $(inputs.bw_file.basename).bg
-    position: 7  
+    position: 8  
 
 inputs:
   - id: bw_file
     type: File
+    inputBinding:
+      position: 2
+  - id: scaling_factor
+    type: int
     inputBinding:
       position: 1
 

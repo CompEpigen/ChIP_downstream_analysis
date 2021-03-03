@@ -13,6 +13,8 @@ inputs:
     type: File    
   - id: output_dir_name
     type: string
+  - id: scaling_factor
+    type: int
 
 outputs: 
 #  bw_file:
@@ -44,6 +46,8 @@ steps:
     in:
       - id: bw_file
         source: files_in_dir/files
+      - id: scaling_factor
+        source: scaling_factor        
     scatter: bw_file
     out:
       - id: bg_file
