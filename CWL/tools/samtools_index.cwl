@@ -15,7 +15,7 @@ hints:
 
 baseCommand: ["samtools", "index"]
 arguments:
-  - valueFrom: -b               #specifies that index is created in bai format
+  - valueFrom: -b  # specifies that index is created in bai format
     position: 1
 
 inputs:
@@ -31,3 +31,5 @@ outputs:
     secondaryFiles: .bai
     outputBinding:
       glob: $(inputs.bam_sorted.basename)
+      
+    
