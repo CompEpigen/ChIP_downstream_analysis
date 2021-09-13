@@ -1,0 +1,1068 @@
+---
+title: "ACTSeq H3K9me3 mouse ESC"
+author: "Marlene Ganslmeier"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+editor_options:
+  chunk_output_type: console
+---
+```{r setup, include=FALSE, message=FALSE}
+
+knitr::opts_chunk$set(eval = FALSE)
+```
+  
+## Data preparation 
+
+starting point are the .bam file created by the CWLab workflow
+
+```{bash}
+
+#define bin size and directories, creates output directories
+
+BIN_SIZE=1000
+BAM_DIR=/omics/groups/OE0219/internal/ganslm/Analysis/GCTB_reanalysis/ChIP/original
+OUT_DIR=/omics/groups/OE0219/internal/ganslm/Analysis/GCTB_reanalysis/ChIP/bw_RPKM
+
+
+
+OUTPUT_FORMAT="bigwig"
+OUT_SUB_DIR="K9"
+OUTPUT_EXTENSION="_NORM_RPKM.bw"
+
+mkdir -p $OUT_DIR/$OUT_SUB_DIR
+
+
+#finds all the files and stores the directories in a .csv file
+find /omics/groups/OE0219/internal/ganslm/Analysis/GCTB_reanalysis/ChIP/original -name "*.bam*" | grep -E 'K9' > "Chip_seq_files".csv
+
+
+#next the code iterates through the file with all the files to be processed and creates .bw files. 
+ 
+
+while IFS="," read -r SAMPLE
+do
+
+F="${SAMPLE%%.bam}" 
+FILE=`echo "$F" | sed 's:.*/::' `
+
+bamCoverage --bam $SAMPLE -o $OUT_DIR/$OUT_SUB_DIR/$FILE$S.${OUTPUT_EXTENSION} --binSize $BIN_SIZE --extendReads 400 -of $OUTPUT_FORMAT --normalizeUsing "RPKM"
+
+
+done <  Chip_seq_files.csv
+
+# lastly tha matrix summarizing all the .bw files is created 
+
+multiBigwigSummary bins -b `ls -1 $OUT_DIR/$OUT_SUB_DIR/*.bw` -out $OUT_DIR/all_marks_mbw_summary_1kb_RPKM.npz --outRawCounts $OUT_DIR/all_marks_mbw_summary_1kb_RPKM.mat \
+--labels $SAMPLES --binSize ${BIN_SIZE} --blackListFileName /ngs_share/data/genomes/Hsapiens/hg19/blacklists/Encode_ChIP_blacklist.bed
+
+```
+
+# Analysis by Heterochromatin domain
+
+Imports all libraries, defines functions for data wrangling later
+```{r include=TRUE}
+
+knitr::opts_chunk$set(error = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+
+
+library(data.table)
+library(ggplot2)
+library(ggsignif)
+library(ggpubr)
+library(tidyr)
+library(pheatmap)
+library(viridis)
+library(GenomicRanges)
+library(gUtils)
+library(ComplexHeatmap)
+library(reshape2)
+library(RnBeads)
+library(data.table)
+library(hexbin)
+library(RColorBrewer)
+library(dplyr)
+library(RnBeads.hg19)
+library(plotly)
+library(htmlwidgets)
+library(cowplot)
+
+
+binnedMean <- function(bins, numvar, mcolname)
+{
+    stopifnot(is(bins, "GRanges"))
+    stopifnot(is(numvar, "RleList"))
+    stopifnot(identical(seqlevels(bins), names(numvar)))
+    bins_per_chrom <- split(ranges(bins), seqnames(bins))
+    sums_list <- lapply(names(numvar),
+            function(seqname) {
+                views <- Views(numvar[[seqname]],
+                        bins_per_chrom[[seqname]])
+                viewMeans(views)
+            })
+    new_mcol <- unsplit(sums_list, as.factor(seqnames(bins)))
+    mcols(bins)[[mcolname]] <- new_mcol
+    bins
+}
+
+binnedSum <- function(bins, numvar, mcolname)
+{
+    stopifnot(is(bins, "GRanges"))
+    stopifnot(is(numvar, "RleList"))
+    stopifnot(identical(seqlevels(bins), names(numvar)))
+    bins_per_chrom <- split(ranges(bins), seqnames(bins))
+    sums_list <- lapply(names(numvar),
+            function(seqname) {
+                views <- Views(numvar[[seqname]],
+                        bins_per_chrom[[seqname]])
+                viewSums(views)
+            })
+    new_mcol <- unsplit(sums_list, as.factor(seqnames(bins)))
+    mcols(bins)[[mcolname]] <- new_mcol
+    bins
+}
+
+calcDiff <- function(input, what)
+{
+  
+if(what == "Delta"){  
+  #calculate delta
+vector <- input[input$Group=="MT", "avg_value"]-input[input$Group=="WT", "avg_value"]
+#sub for MT
+vector_dd <-input[input$Group=="MT",]
+#replace MT with Delta
+vector_dd$Group<-rep(what,nrow(vector_dd))
+#replace MT value with Delta value
+vector_dd$avg_value<-vector$avg_value
+#append to dataset
+input<-rbind(input, vector_dd)
+input <- na.omit(input)
+return(input)
+}
+  else if(what =="LFC"){
+    
+#calculate LFC
+vector <- log2(input[input$Group=="MT", "avg_value"]+1)-log2(input[input$Group=="WT", "avg_value"]+1)
+#sub for MT
+vector_dd <-input[input$Group=="MT",]
+#replace MT with Delta
+vector_dd$Group<-rep(what,nrow(vector_dd))
+#replace MT value with Delta value
+vector_dd$avg_value<-vector$avg_value
+#append to dataset
+input<-rbind(input, vector_dd)
+input <- na.omit(input)
+return(input)
+    
+  }
+}
+
+```
+
+imports meta data file from sequencing processing to extract spike in reads and total reads
+
+
+```{r eval = F}
+seq_meta <- read.delim("/icgc/dkfzlsdf/analysis/C010/ganslm/workflowr/ACT_Seq2/data/210617_NB552269_0115_AHW3TMAFX2_meta.tsv")
+
+samples <- unique(seq_meta$SAMPLE_NAME)
+samples <- samples[c(1:2, 4:7)]
+
+seq_meta <- seq_meta %>%
+  filter(SAMPLE_NAME %in% samples, READ == "1")
+
+seq_meta_sub <- seq_meta[,c("SAMPLE_NAME", "READ_COUNT" )]
+
+base_dir <- "/icgc/dkfzlsdf/analysis/C010/cwlab_processing_out2/canepi-srv1/20210622_693_22310/runs_out"
+base_file <- "_spike_in_duprem_aln_read_counts.txt"
+paths <- list()
+
+for(i in samples){
+  
+  paths[[i]] <- file.path(base_dir, i, paste0(i, base_file))
+  
+}
+
+paths <- do.call(rbind.data.frame, paths)
+
+nreads <- list()
+for(i in 1:nrow(paths)){
+  nreads[[i]] <- read.table(paths[i,1])
+  
+}
+
+nreads <- do.call(rbind.data.frame, nreads)
+colnames(nreads) <- "spike_in"
+nreads$SAMPLE_NAME <- samples
+
+nreads_all <- left_join(seq_meta_sub, nreads, by = "SAMPLE_NAME")
+
+nreads_all <- nreads_all %>%
+  mutate(ratio = spike_in / READ_COUNT)%>%
+  mutate(ratio_percent = ratio*100)%>%
+  mutate(input = spike_in / max(spike_in))%>%
+  separate(SAMPLE_NAME, c("SAMPLE_ID", "AK"), remove = F)
+
+
+
+mt <- c("AX2", "AR", "AT")
+wt <- c("AO", "KM883", "AZ")
+
+ for(i in 1:nrow(nreads_all)){
+ 
+   if(nreads_all[i, "SAMPLE_ID"] %in% mt){
+   
+   nreads_all[i, "Status"] <- "mt"
+ }
+ else {
+   
+   nreads_all[i, "Status"] <- "wt"
+ }
+ }
+
+#saveRDS(nreads_all, "output/readnumbers.rds")
+```
+
+```{r eval = F}
+nreads_all <- readRDS("output/readnumbers.rds")
+```
+
+Plots the fraction of spike in 
+
+### By Ratio
+```{r results='asis', eval = F}
+ggplot(nreads_all)+
+  geom_col(aes(SAMPLE_ID, ratio_percent, fill = Status))
+```
+
+### By Read count
+```{r results='asis', eval = F}
+ggplot(nreads_all)+
+ geom_col(aes(SAMPLE_ID, READ_COUNT, fill = Status))
+
+```
+
+### By Percent
+
+```{r results='asis', eval = F}
+ggplot(nreads_all)+
+  geom_col(aes(SAMPLE_ID, input, fill = Status))
+
+```
+
+### Combined
+
+```{r results='asis', eval = F}
+ggplot(nreads_all, aes(Status, ratio, fill = Status))+
+  geom_boxplot()+
+  stat_compare_means(comparisons = list(c("wt", "mt")), vjust = 2, method = "t.test")+
+  geom_signif(comparisons = list(c("mt", "wt")),
+    map_signif_level=TRUE, test = "t.test" )+
+  geom_point(size = 5, colour = "grey")+
+  theme(legend.position = "none")
+```
+## {-}
+
+imports the ChromHMM states and LMDs for MSCs 
+```{r}
+chmm_segments<-readRDS(file="/icgc/dkfzlsdf/analysis/C010/ganslm/MSC_ChromHMM_states_gr.RDS")
+dnam_segments<-readRDS(file="/icgc/dkfzlsdf/analysis/C010/ganslm/final_MDs.RDS")
+
+```
+
+imports matrix, cleans it, converts it into GRanges object, defines tiles
+```{r}
+#read in matrix from multiBigWigSummary
+
+data <-fread("/omics/groups/OE0219/internal/ganslm/Analysis/GCTB_reanalysis/ChIP/all_marks_mbw_summary_1kb_RPKM.mat",
+        stringsAsFactors=FALSE, header=TRUE)
+
+#filter out bad reads
+data<-data[-grep("chrM|chrUn|_random|_gl|dbb|_hap", data[,1]),]
+dataa<-data[,grep("H3", data)]
+
+
+#tidy data
+coords<-data[,1:3]
+colnames(coords)<-c("chr", "start", "end")
+data<-data[,-c(1:3)]
+data<-apply(data, 2, as.numeric)
+
+##### Normalize to spike in 
+
+data_norm <- data
+    
+    for (i in 1:nrow(nreads_all)){
+      
+      sample <- nreads_all[i, "SAMPLE_NAME"]
+      input <- nreads_all[i, "input"]
+
+      data_norm[, sample] <- data_norm[, sample] * input
+      
+    }
+    
+
+#construct GRanges Object
+windows_full<-GenomicRanges:::GRanges(coords[,1], IRanges:::IRanges(coords[,2],coords[,3]), "*")
+mcols(windows_full)<-data_norm
+
+tile1kb <- gr.tile(windows_full, 1000)
+
+windows <- windows_full
+
+tab<-as.data.frame(mcols(windows))
+
+mt_samples<-c("AR","AX2","AT")
+
+wt_samples<-c("KM883", "AO", "AZ")
+```
+
+Produces correlation heatmap
+```{r eval = F}
+### heatmap
+N_TOP<-20000
+    
+    sampls_mark<-sapply(strsplit(split="_",colnames(data_norm)), "[", 1)
+
+    data_norm_log<-log2(data_norm)
+    
+    #I get -Inf instead of pos Inf
+    data_norm[data_norm_log==-Inf]<-0
+
+    rowsd<-apply(data_norm_log, 1, sd)
+    top_rows<-order(-rowsd)[seq(N_TOP)]
+
+    top_mat<-data_norm_log[top_rows,]
+
+    QUANT<-0.01
+    zlim <- quantile(top_mat, c(QUANT,1-QUANT), na.rm=TRUE)
+    zmin<-zlim[1]
+    zmax<-zlim[2]
+    top_mat[top_mat>zmax]<-zmax
+    top_mat[top_mat<zmin]<-zmin
+
+    col_annot<-data.frame(H3F3A=c("WT","G34W")[1+(sampls_mark%in% c("AR","AX2","AT"))], SampleID=colnames(top_mat))
+    
+rownames(col_annot)<-col_annot$SampleID
+
+pheatmap(top_mat,
+            annotation_col=col_annot,
+            clustering_distance_cols="correlation")
+
+
+
+###### recalculate averages
+
+averages_wt<- rowMeans(tab[,grep(paste(wt_samples, collapse="|"), colnames(tab))])
+averages_mut<- rowMeans(tab[,grep(paste(mt_samples, collapse="|"), colnames(tab))])
+
+coords_avg<-coords
+avg_tab<-cbind(averages_wt, averages_mut)
+avg_tab[avg_tab<0]<-0
+
+avg_tab<-log2(avg_tab)
+avg_tab[avg_tab<0]<-0
+
+
+############## CALCULATE DELTAS
+avg_tab <- as.data.frame(avg_tab)
+delta <- avg_tab$averages_wt - avg_tab$averages_mut
+
+### assign values to chip_windows
+mcols(windows)<-cbind(avg_tab, delta)
+
+############### CORRELATIONS
+
+corr_all<-cor(avg_tab, method="pearson")
+rownames(corr_all)<-gsub("average", "", rownames(corr_all))
+colnames(corr_all)<-gsub("average", "", colnames(corr_all))
+
+tab_log<-log2(tab)
+tab_log[tab_log<0]<-0
+
+corr_all_raw<-cor(tab, method="pearson", use="pairwise.complete.obs")
+
+
+breaksList<-seq(0.3,1, by=0.05)
+
+p <- pheatmap(corr_all_raw,
+        color = colorRampPalette(RColorBrewer:::brewer.pal(n = 7, name ="YlGnBu"))(length(breaksList)+1),
+        breaks = breaksList,
+        scale="none",cluster_cols=FALSE,cluster_rows=FALSE,
+        show_rownames=TRUE, show_colnames=TRUE,
+        display_numbers=TRUE, number_format="%.2f")
+
+```
+
+Same heatmap, just in ggPlot
+
+```{r eval = F}
+#as ggplot
+
+
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(cormat){
+    cormat[lower.tri(cormat)]<- NA
+    return(cormat)
+  }
+  
+  upper_tri <- get_upper_tri(corr_all_raw)
+
+melted_cormat <- reshape2::melt(upper_tri, na.rm = TRUE)
+
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+ coord_fixed()
+  
+  
+```
+
+
+Defines chromHMM segments for data, calculates LFC and Delta (MT-WT) for the bins (See calcDiff())
+```{r eval=F}
+target_window_list<-chmm_segments
+
+#### ALTERNATIVELY USE THE PACKAGE GUTILS
+
+target_windows_int<-lapply(target_window_list, "mcols<-", value=NULL)
+summ_windows<-lapply(target_windows_int, function(pkl) pkl %$% windows_full)
+
+summ_windows<-lapply(names(summ_windows), function(nn) {x=summ_windows[[nn]]; x$Feature<-rep(nn, "_", length(summ_windows[[nn]]));x})
+names(summ_windows)<-names(target_windows_int)
+summ_windows<-lapply(names(summ_windows), function(nn) {x=summ_windows[[nn]]; x$Region<-paste0(nn, "_", seq(summ_windows[[nn]]));x})
+names(summ_windows)<-names(target_windows_int)
+
+full_data<-as.data.frame(do.call("rbind",lapply(summ_windows, mcols)))
+full_data<-gather(full_data, key="Stat", value="value", -Feature, -Region)
+full_data$Sample<-sapply(strsplit(full_data$Stat, split="_"),"[",1)
+full_data$Mark<-sapply(strsplit(full_data$Stat, split="_"),"[",2)
+full_data$Group<-c("WT","MT")[(full_data$Sample %in% mt_samples)+1]
+
+full_data$Sample<-factor(full_data$Sample, levels=c(wt_samples, mt_samples))
+full_data$Feature<-factor(full_data$Feature,levels=names(target_windows_int))
+
+full_data$log2_value<-log2(full_data$value+1)
+
+
+full_data<-na.omit(full_data)
+
+sum_full_data<-full_data %>% 
+    group_by(Group,Mark,Region,Feature, Sample)%>% 
+    dplyr::summarize(avg_value=mean(value))
+
+sum_full_data <- calcDiff(sum_full_data, "Delta")
+
+sum_full_data <- calcDiff(sum_full_data, "LFC")
+
+
+
+######### PLOT THE SUMMARIZED DATA II
+
+npg_pal<-ggsci:::pal_npg()
+npg_cols<-c(npg_pal(10)[c(1,4,8)], "black")
+
+
+#### BOXPLOT PER GROUP
+```
+
+Plots everything 
+
+## Per chmm Segment {.tabset .tabset-fade .tabset-pills}
+
+### Boxplot
+```{r eval=F, results='asis'}
+p<-ggpubr:::ggboxplot(sum_full_data, x="Feature", y= "avg_value", color="Group", 
+                palette=npg_cols)+
+  facet_wrap(c("Group"), nrow=1, scales="fixed")+
+  rotate_x_text(angle = 90, hjust = NULL, vjust = 0)
+
+print(p)
+```
+
+
+```{r}
+npg_pal<-ggsci:::pal_npg()
+grad_cols1<-npg_pal(10)[c(4,1)]
+
+mat_pal<-ggsci:::pal_material("orange")
+grad_cols2<-mat_pal(10)[c(1,10)]
+
+mat_pal<-ggsci:::pal_material("indigo")
+grad_cols3<-mat_pal(10)[c(1,10)]
+
+grad_cols<-c(grad_cols3[2], grad_cols2[2])
+mut_wt_cols<-npg_pal(10)[c(4,1)]
+
+
+sums <- sum_full_data %>%
+  group_by(Feature, Group, Sample)%>%
+  summarise(mean = mean(avg_value))
+```
+
+### Differences
+```{r results='asis'}
+########plot summarized data I
+
+plot_diff <- sums %>%
+ filter(Group == "Delta" | Group == "LFC")%>%
+  group_by(Feature, Group)%>%
+  summarise(mean = mean(mean))%>% #needed to fix colour gradient
+  ggplot(aes(Feature))+
+  geom_tile(aes_string(x="Feature", y = "1", fill = "mean"), size = 1)+
+  scale_fill_gradient2("Average Value", low=grad_cols[1], mid="white", high=grad_cols[2], limits=c(min(sums$mean), max(sums$mean)))+
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())+
+  facet_grid(rows = vars(Group))+
+  theme(strip.background=element_rect(fill="white"),
+        strip.text.x = element_blank())
+
+print(plot_diff)
+```
+
+
+```{r results='asis'}
+plot_sam <- sums %>%
+ filter(Group == "MT" | Group == "WT")%>%
+    group_by(Feature, Group)%>%
+  summarise(mean = mean(mean))%>% #needed to fix colour gradient
+  ggplot(aes(Feature))+
+  geom_tile(aes_string(x="Feature", y = 1, fill = "mean"), size = 1)+
+  scale_fill_gradient2("Average Value", low=grad_cols[1], mid="white", high=grad_cols[2])+
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(angle = 60, size = 15, face = "bold", hjust = 1),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())+
+  facet_grid(rows = vars(Group))+
+  theme(strip.background=element_rect(fill="white"),
+        strip.text.x = element_blank())
+```
+
+### Heatmap combined
+```{r eval=F, results='asis'}
+plot_grid(plot_diff, plot_sam, nrow = 2, rel_heights = c(1.4, 2))
+```
+
+
+```{r eval=F, results='asis'}
+features <- sum_full_data%>%
+    group_by(Feature)%>%
+    group_split(Feature)
+```
+### Heatmaps per Sample
+```{r eval = F}
+plot_samples <- sums %>%
+ filter(Group == "MT" | Group == "WT")%>%
+  ggplot(aes(Feature))+
+  geom_tile(aes_string(x="Feature", y = 1, fill = "mean"), size = 1)+
+  scale_fill_gradient2("Average Value", low=grad_cols[1], mid="white", high=grad_cols[2])+
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(angle = 60, size = 15, face = "bold", hjust = 1),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())+
+  facet_grid(rows = vars(Sample))+
+  theme(strip.background=element_rect(fill="white"),
+        strip.text.x = element_blank())
+
+print(plot_samples)
+
+
+```
+
+## Seperate Violin Plots of Features {.tabset .tabset-fade .tabset-pills}
+
+```{r results='asis'}
+for(i in 1:length(features)){
+      cat('\n')
+    cat("###", features[[i]]$Feature[1], "\n")
+
+  p <- ggplot(features[[i]], aes(x=Group, y = avg_value, fill = Group))+
+        geom_boxplot(width=0.1, color="grey", alpha=0.2)+ 
+        geom_violin()+
+    labs(title = features[[i]]$Feature )
+    print(p)
+        cat('\n')
+
+ }
+
+
+```
+
+## {-}
+
+Same thing, just for LMDs
+
+```{r}
+target_window_list<-dnam_segments
+
+#### ALTERNATIVELY USE THE PACKAGE GUTILS
+
+target_windows_int<-lapply(target_window_list, "mcols<-", value=NULL)
+summ_windows<-lapply(target_windows_int, function(pkl) pkl %$% windows_full)
+
+summ_windows<-lapply(names(summ_windows), function(nn) {x=summ_windows[[nn]]; x$Feature<-rep(nn, "_", length(summ_windows[[nn]]));x})
+names(summ_windows)<-names(target_windows_int)
+summ_windows<-lapply(names(summ_windows), function(nn) {x=summ_windows[[nn]]; x$Region<-paste0(nn, "_", seq(summ_windows[[nn]]));x})
+names(summ_windows)<-names(target_windows_int)
+
+full_data<-as.data.frame(do.call("rbind",lapply(summ_windows, mcols)))
+full_data<-gather(full_data, key="Stat", value="value", -Feature, -Region)
+full_data$Sample<-sapply(strsplit(full_data$Stat, split="_"),"[",1)
+full_data$Mark<-sapply(strsplit(full_data$Stat, split="_"),"[",2)
+full_data$Group<-c("WT","MT")[(full_data$Sample %in% mt_samples)+1]
+
+full_data$Sample<-factor(full_data$Sample, levels=c(wt_samples, mt_samples))
+full_data$Feature<-factor(full_data$Feature,levels=names(target_windows_int))
+
+full_data$log2_value<-log2(full_data$value+1)
+
+
+full_data<-na.omit(full_data)
+
+sum_full_data<-full_data %>% 
+    group_by(Group,Mark,Region,Feature,Sample)%>% 
+    dplyr::summarize(avg_value=mean(value))
+
+sum_full_data <- calcDiff(sum_full_data, "Delta")
+
+sum_full_data <- calcDiff(sum_full_data, "LFC")
+
+
+
+######### PLOT THE SUMMARIZED DATA II
+
+npg_pal<-ggsci:::pal_npg()
+npg_cols<-c(npg_pal(10)[c(1,4,8)], "black")
+
+
+#### BOXPLOT PER GROUP
+```
+
+## Per DNA Methylation Domain{.tabset .tabset-fade .tabset-pills}
+
+### Boxplot
+```{r eval=F, results='asis'}
+p<-ggpubr:::ggboxplot(sum_full_data, x="Feature", y= "avg_value", color="Group", 
+                palette=npg_cols)+
+  facet_wrap(c("Group"), nrow=1, scales="fixed")+
+  rotate_x_text(angle = 90, hjust = NULL, vjust = 0)
+
+print(p)
+```
+
+### Boxplot by Feature 
+
+```{r results='asis'}
+p<-sum_full_data%>%
+  na.omit()%>%
+ filter(Group == "MT" | Group == "WT")%>%
+   #filter(Feature == "IV")%>%
+  ggpubr:::ggboxplot(x="Group", y= "avg_value", color="Group", 
+                palette=npg_cols)+
+  rotate_x_text(hjust = NULL, vjust = 0)+
+  facet_wrap(~Feature)+
+  stat_compare_means(comparisons = list(c("WT", "MT")), vjust = 2, method = "t.test") +
+    geom_signif(comparisons = list(c("WT", "MT")),
+    map_signif_level=TRUE, test = "t.test", vjust = 4)+
+  theme(legend.position = 'none')
+
+print(p)
+```
+
+
+```{r results='asis'}
+npg_pal<-ggsci:::pal_npg()
+grad_cols1<-npg_pal(10)[c(4,1)]
+
+mat_pal<-ggsci:::pal_material("orange")
+grad_cols2<-mat_pal(10)[c(1,10)]
+
+mat_pal<-ggsci:::pal_material("indigo")
+grad_cols3<-mat_pal(10)[c(1,10)]
+
+grad_cols<-c(grad_cols3[2], grad_cols2[2])
+mut_wt_cols<-npg_pal(10)[c(4,1)]
+
+
+sums <- sum_full_data %>%
+  group_by(Feature, Group, Sample)%>%
+  summarise(mean = mean(avg_value))
+
+
+plot_diff <- sums %>%
+ filter(Group == "Delta" | Group == "LFC")%>%
+    group_by(Feature, Group)%>%
+  summarise(mean = mean(mean))%>% #needed to fix colour gradient
+  ggplot(aes(Feature))+
+  geom_tile(aes_string(x="Feature", y = 1, fill = "mean"), size = 1)+
+  scale_fill_gradient2("Average Value", low=grad_cols[1], mid="white", high=grad_cols[2])+ #, limits=c(min(sum$mean), max(sum$mean)))+
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())+
+  facet_grid(rows = vars(Group))+
+  theme(strip.background=element_rect(fill="white"),
+        strip.text.x = element_blank())
+
+
+plot_sam <- sums %>%
+ filter(Group == "MT" | Group == "WT")%>%
+    group_by(Feature, Group)%>%
+  summarise(mean = mean(mean))%>% #needed to fix colour gradient
+  ggplot(aes(Feature))+
+  geom_tile(aes_string(x="Feature", y = 1, fill = "mean"), size = 1)+
+  scale_fill_gradient2("Average Value", low=grad_cols[1], mid="white", high=grad_cols[2])+
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(angle = 60, size = 15, face = "bold", hjust = 1),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())+
+  facet_grid(vars(Group))+
+  theme(strip.background=element_rect(fill="white"),
+        strip.text.x = element_blank())
+```
+
+### Heatmaps
+```{r results='asis'}
+plot_grid(plot_diff, plot_sam, nrow = 2, rel_heights = c(1.7, 2))
+```
+
+### Heatmaps by Sample
+```{r results='asis'}
+plot_samples <- sums %>%
+ filter(Group == "MT" | Group == "WT")%>%
+  ggplot(aes(Feature))+
+  geom_tile(aes_string(x="Feature", y = 1, fill = "mean"), size = 1)+
+  scale_fill_gradient2("Average Value", low=grad_cols[1], mid="white", high=grad_cols[2])+
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(angle = 60, size = 15, face = "bold", hjust = 1),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())+
+  facet_grid(vars(Sample))+
+  theme(strip.background=element_rect(fill="white"),
+        strip.text.x = element_blank())
+
+print(plot_samples)
+```
+
+
+```{r results='asis'}
+features <- sum_full_data%>%
+    group_by(Feature)%>%
+    group_split(Feature)
+```
+
+## Seperate Violin Plots of Features {.tabset .tabset-fade .tabset-pills}
+
+```{r results='asis'}
+for(i in 1:length(features)){
+      cat('\n')
+    cat("###", features[[i]]$Feature[1], "\n")
+
+  p <- ggplot(features[[i]], aes(x=Group, y = avg_value, fill = Group))+
+        geom_boxplot(width=0.1, color="grey", alpha=0.2)+ 
+        geom_violin()+
+    labs(title = features[[i]]$Feature )
+    print(p)
+        cat('\n')
+
+ }
+
+
+```
+
+# Differential binding analysis with DiffBind
+
+The code essentially just follows the DiffBind Vignette
+
+https://bioconductor.org/packages/release/bioc/vignettes/DiffBind/inst/doc/DiffBind.pdf
+
+```{r include=FALSE, message=FALSE}
+
+library(DiffBind)
+library(BiocParallel)
+library(dplyr)
+library(csaw)
+library(GenomicRanges)
+library(biomaRt)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(gprofiler2)
+library(org.Hs.eg.db)
+library(Repitools)
+library(ChIPpeakAnno)
+library(reactome.db)
+library(tidyr)
+
+```
+
+This code only runs outside of a workflowr enviroment due to issues with git_2_R
+
+first create a sample sheet with indexed .bam files
+```{r}
+
+NAME <- "ACT_seq_K9me3"
+EXT <- "_dba_results.rds"
+#path <- paste("/icgc/dkfzlsdf/analysis/C010/ganslm/", NAME, EXT)
+
+
+# create sample sheet 
+
+DIR_1 = "/icgc/dkfzlsdf/analysis/C010/cwlab_processing_out2/canepi-srv1/20210622_693_22310"
+DIR_2 <- "/omics/groups/OE0219/internal/ganslm/Analysis/ACTseq/H3K9me3_broadpeaks"
+
+
+#for H3K9me3
+
+bamReads <- list.files(path = DIR_1,
+                         pattern = glob2rx("*filt_tn5correct.bam"),
+                         recursive = T, 
+                         full.names = TRUE)
+
+Peaks <- list.files(path = DIR_2,
+                    pattern = glob2rx("*H3K9me3_filt_tn5correct_peaks.xls"),
+                    recursive = T, 
+                    full.names = TRUE)
+
+Condition <- c("wt", "G34W", "G34W", "G34W", "wt", "wt")
+
+SampleID <- c("AO", "AR", "AT", "AX2", "AZ", "KM883")
+samples_K9 <- data.frame(SampleID, Tissue = "Cell_line", Factor = "H3K9me3", Condition, bamReads, Peaks, "PeakCaller" =  "macs")
+
+samples_K9
+```
+
+
+
+```{r}
+peaks <- dba(sampleSheet = samples_K9)
+peaks <- dba.blacklist(peaks, blacklist = DBA_BLACKLIST_HG19, greylist=FALSE)
+peaks <- dba.count(peaks)
+```
+
+# Differential Binding {.tabset .tabset-fade .tabset-pills}
+## PCA
+
+```{r results='asis'}
+dba.plotPCA(peaks, label= DBA_CONDITION)
+```
+
+## MA
+```{r results='asis'}
+dba.plotMA(peaks, bNormalized=FALSE,
+           contrast=list(wt=peaks$masks$wt,
+                         G34W=peaks$masks$G34W))
+```
+
+
+```{r}
+#this models the data and sets wt as "base"
+contrast <- dba.contrast(peaks, reorderMeta=list(Condition="wt"), minMembers = 2)
+
+#differential analyis with standard FDR of <0.05
+diffbind <- dba.analyze(contrast)
+```
+
+## Contrasts
+```{r results='asis'}
+dba.show(diffbind, bContrasts = T)
+
+#plot(diffbind, contrast = 1)
+
+db_sites <- dba.report(diffbind)
+#saveRDS(db_sites, file = "/icgc/dkfzlsdf/analysis/C010/ganslm/workflowr/ACT_Seq2/output/db_sites_cutnrun.rds")
+#db_sites <- readRDS("/icgc/dkfzlsdf/analysis/C010/ganslm/workflowr/ACT_Seq2/output/db_sites_cutnrun.rds")
+
+```
+
+## Venn Diagramm
+```{r results='asis'}
+dba.plotVenn(diffbind, contrast=1, bDB=TRUE, bGain=TRUE, bLoss=TRUE, bAll=FALSE)
+
+```
+
+```{r}
+gain <- db_sites[db_sites$Fold > 0]
+loss <- db_sites[db_sites$Fold < 0]
+
+# Create GRanges object with annotations from TxDb database
+annoData <- toGRanges(TxDb.Hsapiens.UCSC.hg19.knownGene, feature="gene")
+
+# Load mart
+ensembl <- readRDS("/omics/groups/OE0219/internal/ganslm/hg19ensembl_genes.rds")
+```
+
+
+# Peak Gains 
+## Genomics Element Distribution {.tabset .tabset-fade .tabset-pills}
+### Genomics Element Distribution
+```{r results='asis'}
+genomicElementDistribution(gain, 
+                           TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene,
+                           promoterRegion=c(upstream=2000, downstream=500),
+                           geneDownstream=c(upstream=0, downstream=2000),
+                           promoterLevel=list(
+                         # from 5' -> 3', fixed precedence 3' -> 5'
+                             breaks = c(-2000, -1000, -500, 0, 500),
+                             labels = c("upstream 1-2Kb", "upstream 0.5-1Kb", 
+                                        "upstream <500b", "TSS - 500b"),
+                             colors = c("#FFE5CC", "#FFCA99", 
+                                        "#FFAD65", "#FF8E32")))
+
+
+
+# Annotate granges with the nearest TSS
+annot <- annotatePeakInBatch(gain, 
+                               AnnotationData=annoData, 
+                               featureType = "TSS",
+                               output="nearestLocation",
+                               PeakLocForDistance = "start")
+
+annot <- addGeneIDs(annot, mart = ensembl, feature_id_type = "ensembl_gene_id",
+                      IDs2Add = c("entrezgene_id", "description"))
+
+annot.copy <- annot
+annot.copy$score <- 1
+```
+
+### Peak Distribution
+```{r results='asis'}
+binOverFeature(annot, annot.copy, annotationData=annoData,
+               radius=5000, nbins=10, FUN=c(sum, length),
+               ylab=c("score", "count"), 
+               main=c("Distribution of aggregated peak scores around TSS", 
+                      "Distribution of aggregated peak numbers around TSS"))
+
+if(require(TxDb.Hsapiens.UCSC.hg19.knownGene)){
+    aCR<-assignChromosomeRegion(annot, nucleotideLevel=FALSE, 
+                           precedence=c("Promoters", "immediateDownstream", 
+                                         "fiveUTRs", "threeUTRs", 
+                                         "Exons", "Introns"), 
+                           TxDb=TxDb.Hsapiens.UCSC.hg19.knownGene)
+    barplot(aCR$percentage)
+}
+```
+
+### Pie Chart
+```{r results='asis'}
+pie1(table(annot$insideFeature))
+
+over <- getEnrichedGO(annot, orgAnn="org.Hs.eg.db", condense=TRUE, feature_id_type ="entrez_id")
+```
+
+## Pathway Analysis {.tabset .tabset-fade .tabset-pills}
+### Enrichment Plot
+```{r results='asis'}
+enrichmentPlot(over)
+
+path <- getEnrichedPATH(annot, "org.Hs.eg.db", "reactome.db", maxP=.05, feature_id_type ="entrez_id")
+path <- separate(path, path.term, sep = ":", into = c(NA, "path.term"))
+```
+
+### Enrichment Plot Reactome
+
+```{r results='asis'}
+enrichmentPlot(path)
+
+```
+gain of peaks --> silencing --> peaks gained whee beta-catenin complex is deactivated --> beta catenin is upregulated --> cancer
+
+# Peakloss 
+## Genomics Element Distribution{.tabset .tabset-fade .tabset-pills}
+### Genomics Element Distribution
+```{r results='asis'}
+genomicElementDistribution(loss, 
+                           TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene,
+                           promoterRegion=c(upstream=2000, downstream=500),
+                           geneDownstream=c(upstream=0, downstream=2000),
+                           promoterLevel=list(
+                         # from 5' -> 3', fixed precedence 3' -> 5'
+                             breaks = c(-2000, -1000, -500, 0, 500),
+                             labels = c("upstream 1-2Kb", "upstream 0.5-1Kb", 
+                                        "upstream <500b", "TSS - 500b"),
+                             colors = c("#FFE5CC", "#FFCA99", 
+                                        "#FFAD65", "#FF8E32")))
+
+
+
+
+# Annotate granges with the nearest TSS
+annot <- annotatePeakInBatch(loss, 
+                               AnnotationData=annoData, 
+                               featureType = "TSS",
+                               output="nearestLocation",
+                               PeakLocForDistance = "start")
+
+annot <- addGeneIDs(annot, mart = ensembl, feature_id_type = "ensembl_gene_id",
+                      IDs2Add = c("entrezgene_id", "description"))
+
+annot.copy <- annot
+annot.copy$score <- 1
+```
+
+### Peak Distribution
+```{r results='asis'}
+binOverFeature(annot, annot.copy, annotationData=annoData,
+               radius=5000, nbins=10, FUN=c(sum, length),
+               ylab=c("score", "count"), 
+               main=c("Distribution of aggregated peak scores around TSS", 
+                      "Distribution of aggregated peak numbers around TSS"))
+
+if(require(TxDb.Hsapiens.UCSC.hg19.knownGene)){
+    aCR<-assignChromosomeRegion(annot, nucleotideLevel=FALSE, 
+                           precedence=c("Promoters", "immediateDownstream", 
+                                         "fiveUTRs", "threeUTRs", 
+                                         "Exons", "Introns"), 
+                           TxDb=TxDb.Hsapiens.UCSC.hg19.knownGene)
+    barplot(aCR$percentage)
+}
+```
+
+### Pie Chart
+```{r results='asis'}
+pie1(table(annot$insideFeature))
+```
+
+## Pathway Analyis {.tabset .tabset-fade .tabset-pills}
+### Enrichment Plot
+```{r results='asis'}
+over <- getEnrichedGO(annot, orgAnn="org.Hs.eg.db", condense=TRUE, feature_id_type ="entrez_id")
+enrichmentPlot(over)
+```
+
+### Enrichment Plot Reactome
+```{r results='asis'}
+path <- getEnrichedPATH(annot, "org.Hs.eg.db", "reactome.db", maxP=.05, feature_id_type ="entrez_id")
+path <- separate(path, path.term, sep = ":", into = c(NA, "path.term"))
+enrichmentPlot(path)
+
+```
+
